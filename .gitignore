@@ -1,0 +1,9 @@
+# Publica-se só o site estático: index.html, dados/, documentos/
+_fontes/
+pipeline/
+data/
+geojson/
+saida/
+.claude/
+__pycache__/
+*.pyc

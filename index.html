@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#1A2B5E" />
+<title>Rodovias do Amazonas — plataforma de consulta</title>
+<meta name="description" content="Perfil técnico, econômico e social das rodovias estaduais e federais e dos ramais do Amazonas, com mapas interativos." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Lexend+Deca:wght@300;400;500;600;700&family=Lexend+Zetta:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --azul:#1A2B5E;--azul-mid:#1E3575;--azul-hover:#152347;--azul-claro:#EBF0FA;--azul-borda:#C4D0E8;
+  --verde:#2D8540;--verde-cl:#E8F5EC;--amarelo:#F5A623;--amarelo-cl:#FEF3DC;--vermelho:#C0392B;--vermelho-cl:#FCE4E1;
+  --ciano:#0E7490;--laranja:#B8620A;--txt:#1A2540;--med:#4A5568;--aux:#6B7A8F;--bg:#F5F7FB;--borda:#E0E6F0;
+  --font:'Lexend Deca',system-ui,sans-serif;--head:'Lexend Zetta','Lexend Deca',sans-serif;--cond:'Barlow Condensed','Lexend Deca',sans-serif;
+  --sombra:0 2px 16px rgba(26,43,94,.08),0 0 0 1px var(--borda);--sombra-lg:0 14px 34px rgba(26,43,94,.15),0 0 0 1px var(--azul-borda);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;min-height:100vh;font-variant-numeric:tabular-nums}
+::selection{background:rgba(245,166,35,.35);color:var(--azul)}
+*{scrollbar-width:thin;scrollbar-color:var(--azul-borda) transparent}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--azul-borda);border-radius:9px}
+a{color:var(--azul);text-underline-offset:3px}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px;border-radius:6px}
+.ic{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ─── estrutura ─── */
+.sidebar{width:232px;background:var(--azul);color:#fff;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;z-index:400;transition:transform .35s var(--ease);box-shadow:4px 0 24px rgba(0,0,0,.16)}
+.marca{display:flex;align-items:center;gap:.7rem;padding:1.15rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.1)}
+.marca svg{width:38px;height:38px;flex-shrink:0}
+.marca-nome{font-family:var(--head);font-size:.84rem;font-weight:800;line-height:1.15;letter-spacing:.01em}
+.marca-sub{font-family:var(--cond);font-size:.72rem;font-weight:600;color:rgba(255,255,255,.62);letter-spacing:.06em;margin-top:.15rem}
+.nav{flex:1;overflow-y:auto;padding:.7rem 0}
+.nav-grupo{font-family:var(--cond);font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);padding:.9rem 1.3rem .35rem}
+.nav a{display:flex;align-items:center;gap:.75rem;padding:.68rem 1.3rem;font-family:var(--cond);font-size:.95rem;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.76);text-decoration:none;transition:background .15s,color .15s;position:relative}
+.nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav a.ativo{background:rgba(245,166,35,.14);color:var(--amarelo)}
+.nav a.ativo::after{content:'';position:absolute;right:0;top:22%;bottom:22%;width:3px;border-radius:3px 0 0 3px;background:var(--amarelo)}
+.nav .cont{margin-left:auto;font-size:.72rem;background:rgba(255,255,255,.1);padding:.05em .55em;border-radius:99px;color:rgba(255,255,255,.8)}
+.sidebar-rodape{padding:.9rem 1.1rem;border-top:1px solid rgba(255,255,255,.1);font-size:.68rem;color:rgba(255,255,255,.55);line-height:1.5}
+.conteudo{margin-left:232px;min-height:100vh;display:flex;flex-direction:column}
+.topo{display:none;align-items:center;gap:.7rem;background:#fff;padding:.6rem 1rem;border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:300}
+.topo button{background:none;border:1.5px solid var(--borda);border-radius:8px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--azul);cursor:pointer}
+.topo strong{font-family:var(--head);font-size:.85rem;color:var(--azul)}
+.veu{display:none;position:fixed;inset:0;background:rgba(10,20,45,.45);z-index:350}
+main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
+@media(max-width:900px){.sidebar{transform:translateX(-240px)}.sidebar.aberta{transform:none}.veu.aberta{display:block}.conteudo{margin-left:0}.topo{display:flex}main{padding:1rem .8rem}}
+
+/* ─── cabeçalho de módulo ─── */
+.hero{background:var(--azul);background-image:linear-gradient(120deg,var(--azul) 0%,var(--azul-mid) 60%,#24407F 100%);border-radius:18px;padding:2rem 2.1rem;color:#fff;position:relative;overflow:hidden;margin-bottom:1.3rem;box-shadow:0 10px 28px rgba(15,23,42,.16)}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-52deg,transparent 0 46px,rgba(255,255,255,.028) 46px 47px)}
+.hero-estrada{position:absolute;right:-40px;top:-10px;width:420px;height:260px;opacity:.16;pointer-events:none}
+.hero>*:not(.hero-estrada){position:relative}
+.hero h1{font-family:var(--head);font-weight:900;font-size:clamp(1.45rem,2.9vw,2.15rem);letter-spacing:-.02em;line-height:1.12;max-width:26ch;text-wrap:balance}
+.hero p{margin-top:.6rem;color:rgba(255,255,255,.78);font-size:.93rem;max-width:70ch;line-height:1.55}
+.hero .acoes{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.1rem}
+.btn{display:inline-flex;align-items:center;gap:.45rem;border:0;border-radius:10px;padding:.62em 1.05em;font-family:var(--cond);font-size:.92rem;font-weight:700;letter-spacing:.03em;cursor:pointer;text-decoration:none;transition:transform .2s var(--ease),background .15s,box-shadow .2s}
+.btn:hover{transform:translateY(-1px)}
+.btn-am{background:var(--amarelo);color:var(--azul);box-shadow:0 6px 16px rgba(245,166,35,.28)}
+.btn-am:hover{background:#FFB940}
+.btn-cl{background:rgba(255,255,255,.1);color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28)}
+.btn-cl:hover{background:rgba(255,255,255,.18)}
+.btn-az{background:var(--azul);color:#fff}.btn-az:hover{background:var(--azul-hover)}
+.btn-ln{background:#fff;color:var(--azul);box-shadow:inset 0 0 0 1.5px var(--azul-borda)}.btn-ln:hover{background:var(--azul-claro)}
+
+/* ─── números ─── */
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem;margin-bottom:1.3rem}
+.num{background:#fff;border-radius:14px;padding:.95rem 1.1rem;box-shadow:var(--sombra);transition:box-shadow .2s,transform .2s var(--ease)}
+.num:hover{box-shadow:var(--sombra-lg);transform:translateY(-2px)}
+.num b{display:block;font-family:var(--head);font-size:1.5rem;font-weight:800;color:var(--azul);letter-spacing:-.02em;line-height:1.1}
+.num span{display:block;font-size:.8rem;color:var(--med);margin-top:.25rem;line-height:1.35}
+.num i{font-style:normal;display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:.4rem;vertical-align:1px}
+
+/* ─── painéis ─── */
+.painel{background:#fff;border-radius:16px;box-shadow:var(--sombra);padding:1.25rem 1.3rem;margin-bottom:1.2rem}
+.painel h2{font-family:var(--head);font-size:1.02rem;font-weight:800;color:var(--azul);letter-spacing:-.01em;margin-bottom:.25rem}
+.painel h3{font-family:var(--head);font-size:.86rem;font-weight:800;color:var(--azul);margin:1.5rem 0 .6rem}
+.painel .nota{font-size:.8rem;color:var(--aux);margin-bottom:.8rem;line-height:1.45}
+.grade2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.grade-mapa{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);gap:1.2rem;align-items:start}
+.grade2>*,.grade-mapa>*{min-width:0}
+@media(max-width:1100px){.grade2,.grade-mapa{grid-template-columns:1fr}}
+.graf{position:relative;height:300px}.graf.alto{height:420px}
+
+/* ─── mapa ─── */
+.mapa{height:560px;border-radius:12px;overflow:hidden;background:#0F2233;box-shadow:inset 0 0 0 1px var(--borda)}
+.mapa.medio{height:460px}
+@media(max-width:700px){.mapa,.mapa.medio{height:380px}}
+.camadas{display:flex;flex-wrap:wrap;gap:.45rem;margin:.1rem 0 .8rem}
+.camada{display:inline-flex;align-items:center;gap:.45rem;border:1.5px solid var(--borda);background:#fff;border-radius:99px;padding:.36em .85em;font-size:.8rem;font-weight:600;color:var(--med);cursor:pointer;user-select:none;transition:all .15s}
+.camada input{appearance:none;width:12px;height:12px;border-radius:3px;border:1.5px solid var(--azul-borda);display:grid;place-content:center}
+.camada input:checked{background:var(--azul);border-color:var(--azul)}
+.camada input:checked::after{content:'';width:6px;height:3px;border:solid #fff;border-width:0 0 2px 2px;transform:rotate(-45deg) translate(1px,-1px)}
+.camada:has(input:checked){border-color:var(--azul-borda);color:var(--azul);background:var(--azul-claro)}
+.legenda{display:flex;flex-wrap:wrap;gap:.35rem 1rem;font-size:.76rem;color:var(--med);margin-top:.6rem}
+.legenda span{display:inline-flex;align-items:center;gap:.4rem}
+.legenda s{display:inline-block;width:20px;height:0;border-top:4px solid;text-decoration:none}
+.leaflet-popup-content-wrapper{border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.leaflet-popup-content{margin:.8rem 1rem;font-family:var(--font);font-size:.8rem;line-height:1.45;color:var(--txt)}
+.pop-t{font-family:var(--head);font-weight:800;color:var(--azul);font-size:.88rem;margin-bottom:.25rem}
+.pop-l{color:var(--med)}.pop-a{display:inline-block;margin-top:.45rem;font-weight:700;color:var(--azul)}
+.leaflet-control-layers{border-radius:10px!important;font-family:var(--font);font-size:.78rem}
+
+/* ─── seletor de rodovia ─── */
+.busca{position:relative;margin-bottom:.8rem}
+.busca svg{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--aux)}
+.busca input,.sel{width:100%;border:1.5px solid var(--borda);background:#fff;border-radius:12px;padding:.72rem 1rem .72rem 2.6rem;font-size:.9rem;outline:none;transition:border-color .15s,box-shadow .15s}
+.sel{padding-left:1rem;width:auto;min-width:min(220px,100%);max-width:100%}
+.busca input:focus,.sel:focus{border-color:var(--azul);box-shadow:0 0 0 4px rgba(26,43,94,.1)}
+.fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.ficha{background:#fff;border:1.5px solid var(--borda);border-radius:12px;padding:.7rem .8rem;cursor:pointer;text-align:left;transition:all .18s var(--ease)}
+.ficha:hover{border-color:var(--azul-borda);transform:translateY(-2px);box-shadow:0 8px 20px rgba(26,43,94,.1)}
+.ficha.ativa{background:var(--azul);border-color:var(--azul);color:#fff}
+.ficha b{display:block;font-family:var(--head);font-size:.92rem;font-weight:800;color:var(--azul)}
+.ficha.ativa b{color:var(--amarelo)}
+.ficha span{display:block;font-size:.72rem;color:var(--med);margin-top:.15rem;line-height:1.3}
+.ficha.ativa span{color:rgba(255,255,255,.75)}
+.ficha .barra{display:flex;height:4px;border-radius:4px;overflow:hidden;margin-top:.5rem;background:var(--borda)}
+.ficha .barra i{display:block;height:100%}
+
+/* ─── perfil ─── */
+.perfil-topo{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.perfil-topo h2{font-family:var(--head);font-size:clamp(1.6rem,3vw,2.3rem);font-weight:900;color:var(--azul);letter-spacing:-.03em;line-height:1}
+.perfil-topo .rota{font-size:.92rem;color:var(--med);margin-top:.45rem;max-width:70ch}
+.navega{display:flex;gap:.4rem}
+.chip{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--cond);font-size:.8rem;font-weight:700;letter-spacing:.03em;padding:.18em .7em;border-radius:99px;background:var(--azul-claro);color:var(--azul);white-space:nowrap}
+.chip.v{background:var(--verde-cl);color:var(--verde)}.chip.a{background:var(--amarelo-cl);color:#8A5A00}.chip.r{background:var(--vermelho-cl);color:var(--vermelho)}
+.texto p{font-size:.93rem;line-height:1.7;color:var(--txt);max-width:75ch;margin-bottom:.8rem}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.45rem 1rem;font-size:.84rem}
+.dl dt{color:var(--aux)}.dl dd{color:var(--txt);font-weight:500}
+.tab-wrap{overflow-x:auto;border-radius:10px;box-shadow:inset 0 0 0 1px var(--borda)}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{background:var(--azul-claro);color:var(--azul);font-family:var(--cond);font-size:.8rem;font-weight:700;letter-spacing:.03em;text-align:left;padding:.55rem .7rem;position:sticky;top:0;white-space:nowrap}
+td{padding:.5rem .7rem;border-top:1px solid var(--borda);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr:hover td{background:#FAFBFE}
+tbody tr.clic{cursor:pointer}
+.tab-rolo{max-height:440px;overflow:auto}
+.fonte{font-size:.74rem;color:var(--aux);margin-top:.45rem;font-style:italic}
+.vazio{padding:1.4rem;text-align:center;color:var(--aux);font-size:.88rem;background:var(--bg);border-radius:12px}
+.aviso{background:var(--amarelo-cl);border-radius:12px;padding:.85rem 1rem;font-size:.85rem;color:#6B4700;line-height:1.5;margin-bottom:1rem}
+.cenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin:.6rem 0}
+.cen{border-radius:12px;padding:.8rem .9rem;background:var(--bg)}
+.cen.central{background:var(--azul);color:#fff}
+.cen small{display:block;font-size:.74rem;color:var(--aux);line-height:1.3}
+.cen.central small{color:rgba(255,255,255,.72)}
+.cen b{display:block;font-family:var(--head);font-size:1.35rem;font-weight:800;color:var(--azul);margin:.2rem 0}
+.cen.central b{color:var(--amarelo)}
+@media(max-width:640px){.cenarios{grid-template-columns:1fr}}
+.dist{display:flex;height:22px;border-radius:7px;overflow:hidden;margin:.4rem 0}
+.dist i{display:block;height:100%}
+.aba-bar{display:flex;gap:.3rem;border-bottom:1.5px solid var(--borda);margin-bottom:1rem;overflow-x:auto}
+.aba{background:none;border:0;padding:.65rem 1rem;font-family:var(--cond);font-weight:700;font-size:.95rem;color:var(--aux);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1.5px;white-space:nowrap}
+.aba.ativa{color:var(--azul);border-bottom-color:var(--amarelo)}
+.doc{display:flex;gap:1rem;align-items:center;padding:1rem;border-radius:12px;background:var(--bg);margin-bottom:.7rem}
+.doc svg{width:40px;height:40px;color:var(--azul)}
+.doc div{flex:1}.doc b{font-family:var(--head);font-size:.9rem;color:var(--azul)}
+.doc span{display:block;font-size:.8rem;color:var(--med)}
+.carregando{display:flex;align-items:center;gap:.7rem;color:var(--aux);padding:3rem;justify-content:center}
+.carregando i{width:22px;height:22px;border:3px solid var(--azul-borda);border-top-color:var(--azul);border-radius:50%;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.entra{animation:entra .55s var(--ease) both}
+@keyframes entra{from{opacity:.001;transform:translateY(10px);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<!--
+THESIS: uma sala de consulta rodoviária do Amazonas em que o mapa é a primeira resposta; recusa o painel genérico de indicadores soltos.
+OWN-WORLD: herdado da plataforma de referência — azul-marinho #1A2B5E, âmbar #F5A623 como marca de estado ativo, Lexend Zetta/Deca e Barlow Condensed, painéis brancos de raio 16, imagem de satélite como fundo cartográfico.
+STORY: o visitante vê a malha inteira, escolhe uma rodovia estadual, federal ou um ramal e lê seu perfil: onde fica, estado, tráfego, pessoas servidas.
+FIRST VIEWPORT: faixa azul com título e dois atalhos; abaixo, números da malha e mapa integrado com camadas.
+FORM: extensão de mundo estabelecido (sem sorteio de conceito, estilo fixado no pedido).
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-painel" viewBox="0 0 24 24"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></symbol>
+  <symbol id="i-estadual" viewBox="0 0 24 24"><path d="M8 3 4 21M16 3l4 18M12 5v2M12 11v2M12 17v2"/></symbol>
+  <symbol id="i-federal" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z"/><path d="M9 12h6"/></symbol>
+  <symbol id="i-ramal" viewBox="0 0 24 24"><path d="M6 21V3M6 9c6 0 12-2 12-6M6 15c4 0 8 1 9 6"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-metodo" viewBox="0 0 24 24"><path d="M4 19h16M6 16l4-6 4 3 5-8"/></symbol>
+</svg>
+
+<aside class="sidebar" id="sidebar">
+  <div class="marca">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#F5A623"/><path d="M14 34 19 6M26 34 21 6" stroke="#1A2B5E" stroke-width="3" stroke-linecap="round"/><path d="M20 10v3M20 18v3M20 26v3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <div><div class="marca-nome">Rodovias do Amazonas</div><div class="marca-sub">Plataforma de consulta</div></div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-grupo">Malha</div>
+    <a href="#panorama" data-r="panorama"><svg class="ic"><use href="#i-painel"/></svg>Panorama e mapa</a>
+    <a href="#estaduais" data-r="estaduais"><svg class="ic"><use href="#i-estadual"/></svg>Rodovias estaduais<span class="cont" id="c-est"></span></a>
+    <a href="#federais" data-r="federais"><svg class="ic"><use href="#i-federal"/></svg>Rodovias federais<span class="cont" id="c-fed"></span></a>
+    <a href="#ramais" data-r="ramais"><svg class="ic"><use href="#i-ramal"/></svg>Ramais<span class="cont" id="c-ram"></span></a>
+    <div class="nav-grupo">Referência</div>
+    <a href="#metodo" data-r="metodo"><svg class="ic"><use href="#i-metodo"/></svg>Tráfego e método</a>
+    <a href="#documentos" data-r="documentos"><svg class="ic"><use href="#i-doc"/></svg>Dossiê e fontes</a>
+  </nav>
+  <div class="sidebar-rodape">Dados de 2011 a 2026 reunidos de fontes públicas e levantamentos técnicos. Imagem de satélite: Esri World Imagery.</div>
+</aside>
+<div class="veu" id="veu"></div>
+<div class="conteudo">
+  <div class="topo"><button id="abreMenu" aria-label="Abrir menu"><svg class="ic"><use href="#i-menu"/></svg></button><strong>Rodovias do Amazonas</strong></div>
+  <main id="app"><div class="carregando"><i></i>Carregando dados da malha…</div></main>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const NF = new Intl.NumberFormat("pt-BR");
+const num = (v, c = 0) => v == null || v === "" || isNaN(v) ? "—" : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tit = s => String(s || "").toLowerCase().replace(/(^|\s|-)(\S)/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g, m => m.toLowerCase());
+const icone = (id, cls = "ic") => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
+
+const SIT = { // cores por situação física (mesma legenda dos mapas do dossiê)
+  "PAV": ["#FF7A00", "Pavimentada"], "DUP": ["#FFD400", "Duplicada"], "IMP": ["#4ADE80", "Implantada"], "LEN": ["#E9C46A", "Leito natural"],
+  "TRV": ["#67C7FF", "Travessia"], "PLA": ["#F4F6FA", "Planejada"], "EOP": ["#FFB347", "Em obras"],
+};
+const SIT_NOME = Object.fromEntries(Object.entries(SIT).map(([k, v]) => [v[1], k]));
+const NIVEIS = [["Excelente", "#157347"], ["Bom", "#4CAF50"], ["Regular", "#F5A623"], ["Ruim", "#E8730C"], ["Péssimo", "#C0392B"]];
+const CACHE = {};
+const carrega = u => CACHE[u] ??= fetch(u).then(r => { if (!r.ok) throw new Error(u); return r.json(); });
+let D; // plataforma.json
+const graficos = [];
+const mapas = [];
+
+/* ───────── mapas ───────── */
+function base(map) {
+  const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri World Imagery · Maxar, Earthstar Geographics" });
+  const rot = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, opacity: .9 });
+  const claro = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap · CARTO" });
+  const satRot = L.layerGroup([sat, rot]).addTo(map);
+  L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro }, null, { position: "topright" }).addTo(map);
+  L.control.scale({ imperial: false }).addTo(map);
+}
+function novoMapa(id, opts = {}) {
+  const map = L.map(id, { center: [-4.2, -62.5], zoom: 5, zoomControl: true, preferCanvas: true, ...opts });
+  base(map);
+  mapas.push(map);
+  return map;
+}
+const estiloSit = (sit, peso = 4) => ({ color: (SIT[sit] || SIT.PLA)[0], weight: peso, opacity: .95, dashArray: sit === "PLA" ? "6 7" : sit === "LEN" || sit === "IMP" ? "10 5" : null, lineCap: "round" });
+function contorno(camada, peso) { // traço escuro por baixo: a linha colorida não some sobre floresta e rio
+  const gj = camada.toGeoJSON();
+  gj.features = gj.features.filter(f => !["PLA"].includes(f.properties.situacao_fisica || f.properties.superficie)); // tracejado com contorno vira linha escura contínua
+  return L.geoJSON(gj, { style: { color: "#0B1B2B", weight: peso + 1.8, opacity: .5 }, interactive: false });
+}
+const corVmda = v => v >= 2000 ? "#C0392B" : v >= 1500 ? "#E8730C" : v >= 1000 ? "#F5A623" : "#4CAF50";
+const corIri = i => NIVEIS[Math.min(i, 4)][1];
+
+/* ───────── helpers de conteúdo ───────── */
+function barraSit(e) {
+  const km = {};
+  (e.trechos || []).forEach(t => { const k = SIT_NOME[t.situacao] || "PLA"; km[k] = (km[k] || 0) + (t.extensao || 0); });
+  const tot = Object.values(km).reduce((a, b) => a + b, 0) || 1;
+  return `<div class="barra">${Object.entries(km).map(([k, v]) => `<i style="width:${100 * v / tot}%;background:${k === "PLA" ? "#B9C3D3" : SIT[k][0]}"></i>`).join("")}</div>`;
+}
+function tabela(cab, linhas, opts = {}) {
+  if (!linhas.length) return `<div class="vazio">${opts.vazio || "Sem registros."}</div>`;
+  return `<div class="tab-wrap ${opts.rolo ? "tab-rolo" : ""}"><table><thead><tr>${cab.map(c => `<th class="${c.n ? "n" : ""}">${c.t}</th>`).join("")}</tr></thead>
+    <tbody>${linhas.join("")}</tbody></table></div>${opts.fonte ? `<div class="fonte">Fonte: ${opts.fonte}</div>` : ""}`;
+}
+const td = (v, n) => `<td class="${n ? "n" : ""}">${v}</td>`;
+function chipSit(s) {
+  const k = SIT_NOME[s] || (/Plan/.test(s) ? "PLA" : "PAV");
+  const cls = { PAV: "", DUP: "v", IMP: "a", LEN: "a", TRV: "", PLA: "r" }[k] ?? "";
+  return `<span class="chip ${cls}">${esc(s)}</span>`;
+}
+function limpaGraficos() { while (graficos.length) graficos.pop().destroy(); while (mapas.length) mapas.pop().remove(); }
+function grafico(id, cfg) {
+  const el = document.getElementById(id); if (!el) return;
+  Chart.defaults.font.family = "'Lexend Deca', sans-serif"; Chart.defaults.color = "#4A5568";
+  graficos.push(new Chart(el, cfg));
+}
+
+/* ───────── PANORAMA ───────── */
+async function panorama() {
+  const est = D.estaduais, fed = D.federais;
+  const kmEst = est.reduce((s, e) => s + (e.extensao || 0), 0);
+  let kmPav = 0, kmPla = 0;
+  est.forEach(e => e.trechos.forEach(t => { if (/Paviment|Duplic/.test(t.situacao)) kmPav += t.extensao || 0; if (/Planej/.test(t.situacao)) kmPla += t.extensao || 0; }));
+  const kmFed = fed.reduce((s, f) => s + f.extensao, 0);
+  const fedPav = fed.reduce((s, f) => s + (f.superficie.Pavimentada || 0) + (f.superficie.Duplicada || 0), 0);
+  const ramais = (await carrega("dados/geo/ramais.geojson")).features;
+  const kmRam = ramais.reduce((s, f) => s + (f.properties.extensao_km || 0), 0);
+  const fs = D.frota_serie, fr0 = fs.manaus[5] + fs.interior[5], fr1 = fs.manaus.at(-1) + fs.interior.at(-1);
+  $("#app").innerHTML = `
+  <section class="hero entra">
+    <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+    <h1>Onde estão, como estão e a quem servem as rodovias do Amazonas</h1>
+    <p>${est.length} rodovias estaduais, ${fed.length} rodovias federais e ${NF.format(ramais.length)} ramais reunidos em mapa, com extensão, situação física, tráfego estimado para ${D.meta.horizonte}, condição do pavimento e população atendida.</p>
+    <div class="acoes"><a class="btn btn-am" href="#estaduais">${icone("estadual")}Consultar uma rodovia</a><a class="btn btn-cl" href="documentos/Dossie_Rodovias_Amazonas.pdf" target="_blank" rel="noopener">${icone("baixa")}Baixar o dossiê (PDF)</a></div>
+  </section>
+  <div class="nums entra">
+    <div class="num"><b>${num(kmEst)} km</b><span>de rodovias estaduais cadastradas, ${num(kmPla)} km só planejados</span></div>
+    <div class="num"><b>${num(kmPav)} km</b><span>estaduais pavimentados ou duplicados</span></div>
+    <div class="num"><b>${num(kmFed)} km</b><span>de rodovias federais no Amazonas, ${num(fedPav)} km pavimentados</span></div>
+    <div class="num"><b>${NF.format(ramais.length)}</b><span>ramais cadastrados, ${num(kmRam)} km de estradas vicinais</span></div>
+    <div class="num"><b>+${num(100 * (fr1 / fr0 - 1))} %</b><span>de veículos no estado entre 2011 e ${D.meta.ano_frota} (${num(fr1)} veículos)</span></div>
+  </div>
+  <section class="painel entra">
+    <h2>Mapa integrado da malha</h2>
+    <p class="nota">Clique em uma rodovia para abrir o resumo e o perfil completo. As camadas de tráfego federal e de condição do pavimento aparecem nos trechos com levantamento.</p>
+    <div class="camadas" id="cam">
+      <label class="camada"><input type="checkbox" data-c="est" checked>Estaduais</label>
+      <label class="camada"><input type="checkbox" data-c="fed" checked>Federais</label>
+      <label class="camada"><input type="checkbox" data-c="ram">Ramais</label>
+      <label class="camada"><input type="checkbox" data-c="vmda">Tráfego federal (VMDA)</label>
+      <label class="camada"><input type="checkbox" data-c="iri">Condição do pavimento (IRI 2024)</label>
+      <label class="camada"><input type="checkbox" data-c="mun">Limites municipais</label>
+    </div>
+    <div id="mapaGeral" class="mapa"></div>
+    <div class="legenda" id="leg"></div>
+  </section>
+  <div class="grade2">
+    <section class="painel"><h2>Tráfego estadual: 2011 e hoje</h2><p class="nota">Veículos por dia. Contagem do Plano Rodoviário de 2011 e estimativa central para ${D.meta.horizonte}, recalibrada pela frota observada.</p><div class="graf alto"><canvas id="gTraf"></canvas></div></section>
+    <section class="painel"><h2>Frota de veículos no Amazonas</h2><p class="nota">Manaus e demais municípios, ${fs.anos[0]}–${D.meta.ano_frota}. A linha marca o ano das contagens de tráfego.</p><div class="graf alto"><canvas id="gFrota"></canvas></div></section>
+  </div>
+  <section class="painel"><h2>Rodovias federais no território, por superfície</h2><p class="nota">Quilômetros no Sistema Nacional de Viação (versão 202607A). A maior parte é planejada ou implantada sem pavimento.</p><div class="graf"><canvas id="gFed"></canvas></div></section>`;
+
+  const map = novoMapa("mapaGeral");
+  const grupos = {};
+  const [gEst, gFed, gMun] = await Promise.all(["estaduais", "federais", "municipios"].map(n => carrega(`dados/geo/${n}.geojson`)));
+  const porCod = Object.fromEntries(est.map(e => [e.codigo, e]));
+  const popEst = f => { const e = porCod[f.properties.rodovia]; const p = f.properties;
+    return `<div class="pop-t">${esc(p.rodovia)}</div><div class="pop-l">${esc(p.trecho_inicio)} → ${esc(p.trecho_fim)}</div><div>${esc(p.situacao_descricao || "")} · ${num(p.extensao_cadastro_km || p.extensao_geodesica_km, 1)} km</div>${e && e.trafego ? `<div>VMD ${D.meta.horizonte}: <b>${num(e.trafego.cen.central.vmd)}</b> veíc./dia</div>` : ""}<a class="pop-a" href="#estaduais/${p.rodovia}">Abrir perfil</a>`; };
+  const linhaEst = L.geoJSON(gEst, { style: f => estiloSit(f.properties.situacao_fisica, 4.5), onEachFeature: (f, l) => l.bindPopup(() => popEst(f)) });
+  grupos.est = L.layerGroup([contorno(linhaEst, 3.5), linhaEst]);
+  const linhaFed = L.geoJSON(gFed, { style: f => ({ color: "#FF5A5F", weight: f.properties.superficie === "PLA" ? 2 : 3.2, dashArray: f.properties.superficie === "PLA" ? "5 6" : null, opacity: .95 }),
+    onEachFeature: (f, l) => l.bindPopup(() => `<div class="pop-t">${esc(f.properties.br)}</div><div class="pop-l">${esc(f.properties.inicio)} → ${esc(f.properties.fim)}</div><div>Trecho ${esc(f.properties.snv)} · ${esc(f.properties.superficie)} · ${num(f.properties.extensao, 1)} km</div><a class="pop-a" href="#federais/${f.properties.br}">Abrir perfil</a>`) });
+  grupos.fed = L.layerGroup([contorno(linhaFed, 3), linhaFed]);
+  grupos.mun = L.geoJSON(gMun, { style: { color: "#F2E8B0", weight: .8, opacity: .6, fill: false, dashArray: "4 4" }, interactive: false });
+  map.fitBounds(linhaFed.getBounds(), { padding: [20, 20] });
+  const liga = async (c, on) => {
+    if (on && !grupos[c]) {
+      if (c === "ram") grupos.ram = L.geoJSON(await carrega("dados/geo/ramais.geojson"), { style: { color: "#FF8FC4", weight: 1.6, opacity: .95 }, onEachFeature: (f, l) => l.bindPopup(() => popRamal(f.properties)) });
+      if (c === "vmda") grupos.vmda = L.geoJSON(await carrega("dados/geo/vmda_pnct.geojson"), { style: f => ({ color: corVmda(f.properties.vmda), weight: 7, opacity: .9 }), onEachFeature: (f, l) => l.bindPopup(`<div class="pop-t">${esc(f.properties.br)}</div><div>VMDA modelado: <b>${num(f.properties.vmda)}</b> veíc./dia</div><div class="pop-l">DNIT, PNCT 2023</div>`) });
+      if (c === "iri") { const iri = await carrega("dados/iri.json"); grupos.iri = L.layerGroup(Object.entries(iri).flatMap(([cod, segs]) => segs.map(s => L.polyline([[s[0], s[1]], [s[2], s[3]]], { color: corIri(s[5]), weight: 6, opacity: .95 }).bindPopup(`<div class="pop-t">${cod}</div><div>IRI ${s[4] == null ? "sem medição" : num(s[4], 1) + " m/km"} · ${NIVEIS[Math.min(s[5], 4)][0]}</div>`)))); }
+    }
+    if (grupos[c]) on ? grupos[c].addTo(map) : grupos[c].remove();
+    legenda();
+  };
+  const legenda = () => {
+    const ativos = [...document.querySelectorAll("#cam input:checked")].map(i => i.dataset.c);
+    let h = "";
+    if (ativos.includes("est")) h += ["DUP", "PAV", "IMP", "LEN", "TRV", "PLA"].map(k => `<span><s style="border-color:${k === "PLA" ? "#9AA5B1" : SIT[k][0]}${k === "PLA" ? ";border-top-style:dashed" : ""}"></s>Estadual ${SIT[k][1].toLowerCase()}</span>`).join("");
+    if (ativos.includes("fed")) h += `<span><s style="border-color:#FF5A5F"></s>Federal</span><span><s style="border-color:#FF5A5F;border-top-style:dashed"></s>Federal planejada</span>`;
+    if (ativos.includes("ram")) h += `<span><s style="border-color:#FF8FC4"></s>Ramal</span>`;
+    if (ativos.includes("vmda")) h += [["<1.000", "#4CAF50"], ["1.000–1.499", "#F5A623"], ["1.500–1.999", "#E8730C"], ["≥2.000", "#C0392B"]].map(([t, c]) => `<span><s style="border-color:${c}"></s>VMDA ${t}</span>`).join("");
+    if (ativos.includes("iri")) h += NIVEIS.map(([t, c]) => `<span><s style="border-color:${c}"></s>${t}</span>`).join("");
+    $("#leg").innerHTML = h;
+  };
+  document.querySelectorAll("#cam input").forEach(i => { i.addEventListener("change", () => liga(i.dataset.c, i.checked)); if (i.checked) liga(i.dataset.c, true); });
+
+  const comT = est.filter(e => e.trafego).sort((a, b) => b.trafego.cen.central.vmd - a.trafego.cen.central.vmd);
+  grafico("gTraf", { type: "bar", data: { labels: comT.map(e => e.codigo), datasets: [
+    { label: "2011", data: comT.map(e => e.trafego.base), backgroundColor: "#B9C3D3", borderRadius: 4 },
+    { label: `${D.meta.horizonte} (central)`, data: comT.map(e => e.trafego.cen.central.vmd), backgroundColor: "#1A2B5E", borderRadius: 4 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${num(c.parsed.x)} veíc./dia` } } }, scales: { x: { ticks: { callback: v => num(v) } }, y: { grid: { display: false } } } } });
+  grafico("gFrota", { type: "line", data: { labels: fs.anos, datasets: [
+    { label: "Manaus", data: fs.manaus, fill: true, backgroundColor: "rgba(26,43,94,.85)", borderColor: "#1A2B5E", pointRadius: 0, stack: "f" },
+    { label: "Demais municípios", data: fs.interior, fill: true, backgroundColor: "rgba(127,167,217,.9)", borderColor: "#7FA7D9", pointRadius: 0, stack: "f" }] },
+    options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${num(c.parsed.y)}` } } }, scales: { y: { stacked: true, ticks: { callback: v => num(v / 1000) + " mil" } }, x: { grid: { display: false } } } },
+    plugins: [{ id: "ano2011", afterDraw(ch) { const x = ch.scales.x.getPixelForValue(fs.anos.indexOf(2011)); const c = ch.ctx; c.save(); c.strokeStyle = "#C0392B"; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(x, ch.chartArea.top); c.lineTo(x, ch.chartArea.bottom); c.stroke(); c.restore(); } }] });
+  const sups = ["Duplicada", "Pavimentada", "Implantada", "Travessia", "Planejada"], cores = ["#FFD400", "#FF7A00", "#4ADE80", "#67C7FF", "#B9C3D3"];
+  grafico("gFed", { type: "bar", data: { labels: fed.map(f => f.codigo), datasets: sups.map((s, i) => ({ label: s, data: fed.map(f => f.superficie[s] || 0), backgroundColor: cores[i], borderRadius: 2 })) },
+    options: { maintainAspectRatio: false, plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${num(c.parsed.y, 1)} km` } } }, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => num(v) + " km" } } } } });
+}
+
+function popRamal(p) {
+  return `<div class="pop-t">${esc(tit(p.nome))}</div><div class="pop-l">${esc(tit(p.municipio))} · acesso: ${esc(p.rodovia_referencia || "—")}</div><div>${num(p.extensao_km, 1)} km · ${esc(tit(p.revestimento || "—"))}</div><a class="pop-a" href="#ramais/${encodeURIComponent(p.codigo + "_" + p.numero)}">Abrir ficha</a>`;
+}
+
+/* ───────── ESTADUAIS / FEDERAIS: lista ───────── */
+function seletor(tipo, lista, ativo) {
+  const federal = tipo === "federais";
+  return `<section class="hero entra">
+      <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+      <h1>${federal ? "Rodovias federais no Amazonas" : "Rodovias estaduais do Amazonas"}</h1>
+      <p>${federal ? `Os ${lista.length} eixos do Sistema Nacional de Viação dentro do território amazonense: trechos, superfície, tráfego modelado, obras de arte e ramais conectados.`
+        : `${lista.length} rodovias, com traçado sobre satélite, trechos, tráfego de 2011 atualizado, condição do pavimento, ramais, obras de arte e população atendida.`}</p>
+    </section>
+    <section class="painel">
+      <div class="busca">${icone("busca")}<input id="filtro" type="search" placeholder="Filtrar por código, município ou destino" autocomplete="off" aria-label="Filtrar rodovias"></div>
+      <div class="fichas" id="fichas">${lista.map(r => fichaHtml(tipo, r, ativo)).join("")}</div>
+    </section>
+    <div id="perfil"></div>`;
+}
+function fichaHtml(tipo, r, ativo) {
+  const sub = tipo === "federais" ? `${num(r.extensao)} km no AM` : `${num(r.extensao, 1)} km · ${esc(r.situacao)}`;
+  const busca = [r.codigo, r.inicio, r.fim, ...(r.socio.municipios || [])].join(" ").toLowerCase();
+  const barra = tipo === "federais" ? `<div class="barra">${["Duplicada", "Pavimentada", "Implantada", "Travessia", "Planejada"].map((s, i) => `<i style="width:${100 * (r.superficie[s] || 0) / r.extensao}%;background:${["#FFD400", "#FF7A00", "#4ADE80", "#67C7FF", "#B9C3D3"][i]}"></i>`).join("")}</div>` : barraSit(r);
+  return `<a class="ficha ${r.codigo === ativo ? "ativa" : ""}" href="#${tipo}/${r.codigo}" data-busca="${esc(busca)}"><b>${r.codigo}</b><span>${sub}</span>${barra}</a>`;
+}
+function ligaFiltro() {
+  $("#filtro")?.addEventListener("input", ev => { const q = ev.target.value.trim().toLowerCase(); document.querySelectorAll("#fichas .ficha").forEach(f => f.hidden = q && !f.dataset.busca.includes(q)); });
+}
+function navegaPar(tipo, lista, cod) {
+  const i = lista.findIndex(r => r.codigo === cod), a = lista[i - 1], p = lista[i + 1];
+  return `<div class="navega">${a ? `<a class="btn btn-ln" href="#${tipo}/${a.codigo}">${icone("esq")}${a.codigo}</a>` : ""}${p ? `<a class="btn btn-ln" href="#${tipo}/${p.codigo}">${p.codigo}${icone("dir")}</a>` : ""}</div>`;
+}
+function blocoSocio(s, cod) {
+  if (!s.municipios.length) return "";
+  const linhas = s.municipios.map(m => { const x = D.municipios[m] || {}; return `<tr>${td(esc(m))}${td(num(x.pop), 1)}${td(num((x.pib_mil || 0) / 1000, 1), 1)}${td(num(x.frota), 1)}</tr>`; });
+  return `<h3>Municípios atravessados e população atendida</h3>
+    <div class="nums" style="margin-bottom:.8rem"><div class="num"><b>${num(s.populacao)}</b><span>habitantes nos municípios atravessados (2026)</span></div>
+    ${s.municipios.includes("Manaus") ? `<div class="num"><b>${num(s.populacao_sem_manaus)}</b><span>habitantes, excluída a capital</span></div>` : ""}
+    <div class="num"><b>R$ ${num(s.pib_mil / 1e6, 2)} bi</b><span>PIB somado dos municípios (2023)</span></div>
+    <div class="num"><b>${num(s.frota)}</b><span>veículos registrados (${D.meta.ano_frota})</span></div></div>
+    ${tabela([{ t: "Município" }, { t: "População 2026", n: 1 }, { t: "PIB 2023 (R$ mi)", n: 1 }, { t: `Frota ${D.meta.ano_frota}`, n: 1 }], linhas, { fonte: "IBGE; SENATRAN." })}`;
+}
+function blocoRamais(ramais, cod) {
+  const linhas = ramais.map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.c.replace(/(\D+)(\d+)$/, "$1_$2"))}'">${td(num(r.km, 1) + (r.o === "g" ? "*" : ""), 1)}${td(esc(tit(r.n)))}${td(esc(r.m))}${td(num(r.e, 1), 1)}${td(esc(tit(r.r || "—")))}${td(esc(tit(r.s || "—")))}</tr>`);
+  return `<h3>Ramais conectados (${ramais.length})</h3>${tabela([{ t: "km", n: 1 }, { t: "Ramal" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }, { t: "Situação" }], linhas,
+    { rolo: 1, vazio: "Nenhum ramal cadastrado conectado a esta rodovia.", fonte: "cadastro de ramais; *km obtido pela projeção do início do ramal sobre o eixo." })}`;
+}
+
+/* ───────── perfil estadual ───────── */
+async function perfilEstadual(cod) {
+  const e = D.estaduais.find(x => x.codigo === cod); if (!e) return;
+  const t = e.trafego, iri = e.iri, H = D.meta.horizonte;
+  const cen = t ? t.cen : null;
+  $("#perfil").innerHTML = `<section class="painel entra">
+    <div class="perfil-topo"><div><h2>${cod}</h2><div class="rota">${esc(tit(e.inicio))} → ${esc(tit(e.fim))}</div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem">${chipSit(e.situacao)}<span class="chip">${esc(e.sentido || "—")}</span>${e.regiao ? `<span class="chip">${e.regiao === "RMM" ? "Região Metropolitana de Manaus" : "Interior"}</span>` : ""}</div></div>
+      ${navegaPar("estaduais", D.estaduais, cod)}</div>
+    <div class="nums">
+      <div class="num"><b>${num(e.extensao, 1)} km</b><span>extensão cadastrada${e.extensao_2011 ? ` (${num(e.extensao_2011, 1)} km em 2011)` : ""}</span></div>
+      <div class="num"><b>${t ? num(cen.central.vmd) : "—"}</b><span>${t ? `veículos/dia estimados para ${H} (${num(t.base)} em 2011)` : "sem contagem de tráfego de referência"}</span></div>
+      <div class="num"><b>${iri ? num(iri.iri_medio, 2) : "—"}</b><span>${iri ? `IRI médio (m/km) · condição ${iri.nivel_geral.toLowerCase()}` : "condição do pavimento não levantada"}</span></div>
+      <div class="num"><b>${e.ramais.length}</b><span>ramais conectados</span></div>
+      <div class="num"><b>${e.oae.length || (e.plano.pontes || "—")}</b><span>${e.oae.length ? "obras de arte especiais inventariadas" : e.plano.pontes ? "pontes declaradas em 2011" : "obras de arte inventariadas"}</span></div>
+    </div>
+    <div class="grade-mapa">
+      <div>${e.tem_tracado ? `<div class="camadas" id="camP"><label class="camada"><input type="checkbox" data-c="ram" checked>Ramais</label><label class="camada"><input type="checkbox" data-c="oae" checked>Obras de arte</label>${iri ? `<label class="camada"><input type="checkbox" data-c="iri">Condição do pavimento</label>` : ""}</div><div id="mapaP" class="mapa medio"></div>
+        <div class="legenda">${[...new Set(e.trechos.map(x => SIT_NOME[x.situacao]).filter(Boolean))].map(k => `<span><s style="border-color:${k === "PLA" ? "#9AA5B1" : SIT[k][0]}"></s>${SIT[k][1]}</span>`).join("")}<span><s style="border-color:#FF8FC4"></s>Ramal</span></div>`
+        : `<div class="aviso"><b>Traçado não georreferenciado.</b> A ${cod} consta do cadastro como rodovia ${esc(e.situacao.toLowerCase())}, mas não tem geometria na base vetorial. O mapa não é desenhado para não sugerir um traçado que não existe no terreno.</div>`}</div>
+      <div class="texto">${e.texto.map(p => `<p>${esc(p)}</p>`).join("")}
+        <dl class="dl" style="margin-top:.4rem"><dt>Ato de criação</dt><dd>${esc(e.decreto || "—")}</dd><dt>Classe em 2011</dt><dd>${esc(e.plano.classe || "—")}</dd><dt>Conservação em 2011</dt><dd>${esc(e.plano.conservacao || "—")}</dd>${e.plano.prioridade ? `<dt>Prioridade no Plano de 2011</dt><dd>${e.plano.prioridade}º</dd>` : ""}</dl></div>
+    </div>
+    <h3>Tráfego: da contagem de 2011 à estimativa de ${H}</h3>
+    ${t ? `<p class="nota">Base: ${t.recontagem ? "recontagem de novembro de 2011, após a inauguração da ponte sobre o rio Negro" : "contagem classificatória de 7 dias do Plano Rodoviário (2011)"}, ${num(t.base)} veículos/dia. A frota de ${t.ref.join(", ")} cresceu ${num(t.cresc, 1)} % entre 2011 e ${D.meta.ano_frota} (${num(100 * t.i_frota, 2)} % a.a.).</p>
+      <div class="cenarios">${[["plano", "Tendência do Plano", "1,96 % a.a."], ["central", "Cenário central", "25 % do crescimento da frota"], ["alto", "Cenário alto", "50 % do crescimento da frota"]].map(([k, n, d]) =>
+        `<div class="cen ${k === "central" ? "central" : ""}"><small>${n} · ${d}</small><b>${num(cen[k].vmd)}</b><small>veíc./dia · classe ${cen[k].classe_dner}${cen[k].saturacao != null ? ` · v/c ${num(cen[k].saturacao, 2)}` : " · via urbana"}</small></div>`).join("")}</div>`
+      : `<div class="vazio">A ${cod} não teve contagem no Plano Rodoviário de 2011. Não se apresenta estimativa para não produzir um volume sem observação.</div>`}
+    <h3>Condição do pavimento (2024)</h3>
+    ${iri ? `<p class="nota">${num(iri.extensao_levantada_km, 1)} km levantados com RoadLab Pro · ${iri.n_buracos} buracos registrados.</p>
+      <div class="dist">${iri.dist_pct.map((v, i) => `<i title="${NIVEIS[i][0]}: ${num(v, 1)} %" style="width:${v}%;background:${NIVEIS[i][1]}"></i>`).join("")}</div>
+      <div class="legenda">${iri.dist_pct.map((v, i) => `<span><s style="border-color:${NIVEIS[i][1]}"></s>${NIVEIS[i][0]} ${num(v, 1)} %</span>`).join("")}</div>`
+      : `<div class="vazio">Sem levantamento de condição do pavimento nesta rodovia.</div>`}
+    ${blocoSocio(e.socio, cod)}
+    <h3>Trechos cadastrados</h3>
+    ${tabela([{ t: "Código" }, { t: "Início" }, { t: "Fim" }, { t: "km ini.", n: 1 }, { t: "km fim", n: 1 }, { t: "Ext. (km)", n: 1 }, { t: "Situação" }, { t: "Revestimento" }],
+      e.trechos.map(x => `<tr>${td(esc(x.codigo))}${td(esc(x.inicio))}${td(esc(x.fim))}${td(num(x.km_ini, 2), 1)}${td(num(x.km_fim, 2), 1)}${td(num(x.extensao, 2), 1)}${td(chipSit(x.situacao))}${td(esc(x.revestimento || "—"))}</tr>`), { fonte: "Sistema Rodoviário Estadual (2026)." })}
+    ${blocoRamais(e.ramais, cod)}
+    <h3>Obras de arte especiais</h3>
+    ${tabela([{ t: "km", n: 1 }, { t: "Tipo" }, { t: "Denominação" }, { t: "Curso transposto" }, { t: "Comprimento (m)", n: 1 }],
+      e.oae.map(o => `<tr>${td(num(o.km, 1), 1)}${td(esc(o.tipo))}${td(esc(o.nome || "—"))}${td(esc(o.curso || "—"))}${td(num(o.comprimento, 1), 1)}</tr>`), { vazio: e.plano.pontes ? `O Plano de 2011 declara ${e.plano.pontes} pontes nesta rodovia, sem inventário localizado.` : "Sem obra de arte especial inventariada.", fonte: "inventário de meios de transposição (2024); Plano Rodoviário (2011)." })}
+  </section>`;
+  if (!e.tem_tracado) return;
+  const map = novoMapa("mapaP");
+  const [gEst, gRam] = await Promise.all([carrega("dados/geo/estaduais.geojson"), carrega("dados/geo/ramais.geojson")]);
+  const eixo = L.geoJSON({ type: "FeatureCollection", features: gEst.features.filter(f => f.properties.rodovia === cod) }, { style: f => estiloSit(f.properties.situacao_fisica, 5),
+    onEachFeature: (f, l) => l.bindPopup(`<div class="pop-t">${cod} · ${esc(f.properties.codigo_sre)}</div><div class="pop-l">${esc(f.properties.trecho_inicio)} → ${esc(f.properties.trecho_fim)}</div><div>${esc(f.properties.situacao_descricao)}</div>`) });
+  contorno(eixo, 5).addTo(map); eixo.addTo(map);
+  map.fitBounds(eixo.getBounds(), { padding: [30, 30] });
+  const cods = new Set(e.ramais.map(r => r.c));
+  const cam = {
+    ram: L.geoJSON({ type: "FeatureCollection", features: gRam.features.filter(f => cods.has(`${f.properties.codigo}${f.properties.numero}`)) }, { style: { color: "#FF8FC4", weight: 2.2 }, onEachFeature: (f, l) => l.bindPopup(() => popRamal(f.properties)) }),
+    oae: L.layerGroup(e.oae.filter(o => o.latitude).map(o => L.circleMarker([o.latitude, o.longitude], { radius: 6, color: "#0B1B2B", weight: 2, fillColor: "#fff", fillOpacity: 1 }).bindPopup(`<div class="pop-t">${esc(o.tipo)} · km ${num(o.km, 1)}</div><div>${esc(o.nome)}</div><div class="pop-l">${esc(o.curso || "")} ${o.comprimento ? "· " + num(o.comprimento, 1) + " m" : ""}</div>`))),
+  };
+  if (iri) { const segs = (await carrega("dados/iri.json"))[cod] || []; cam.iri = L.layerGroup(segs.map(s => L.polyline([[s[0], s[1]], [s[2], s[3]]], { color: corIri(s[5]), weight: 8, opacity: .95 }).bindPopup(`IRI ${s[4] == null ? "sem medição" : num(s[4], 1) + " m/km"} · ${NIVEIS[Math.min(s[5], 4)][0]}`))); }
+  document.querySelectorAll("#camP input").forEach(i => { const f = () => i.checked ? cam[i.dataset.c]?.addTo(map) : cam[i.dataset.c]?.remove(); i.addEventListener("change", f); f(); });
+}
+
+/* ───────── perfil federal ───────── */
+async function perfilFederal(br) {
+  const f = D.federais.find(x => x.codigo === br); if (!f) return;
+  const v = f.vmda, oaeN = Object.values(f.oae_tipos).reduce((a, b) => a + b, 0);
+  $("#perfil").innerHTML = `<section class="painel entra">
+    <div class="perfil-topo"><div><h2>${br}</h2><div class="rota">${f.trechos.length} trechos no Sistema Nacional de Viação dentro do Amazonas</div></div>${navegaPar("federais", D.federais, br)}</div>
+    <div class="nums">
+      <div class="num"><b>${num(f.extensao, 1)} km</b><span>extensão no Amazonas</span></div>
+      <div class="num"><b>${num((f.superficie.Pavimentada || 0) + (f.superficie.Duplicada || 0), 1)} km</b><span>pavimentados ou duplicados</span></div>
+      <div class="num"><b>${num(f.superficie.Planejada || 0, 1)} km</b><span>apenas planejados</span></div>
+      <div class="num"><b>${v.medio_ponderado ? num(v.medio_ponderado) : "—"}</b><span>${v.medio_ponderado ? `veículos/dia (VMDA modelado, ${num(v.km_simulado, 1)} km simulados)` : "sem trecho simulado pelo PNCT"}</span></div>
+      <div class="num"><b>${oaeN}</b><span>obras de arte especiais no cadastro federal</span></div>
+    </div>
+    <div class="grade-mapa">
+      <div><div class="camadas" id="camF"><label class="camada"><input type="checkbox" data-c="vmda">Tráfego (VMDA)</label><label class="camada"><input type="checkbox" data-c="oae" checked>Obras de arte</label><label class="camada"><input type="checkbox" data-c="ram" checked>Ramais</label></div>
+        <div id="mapaF" class="mapa medio"></div>
+        <div class="legenda">${["DUP", "PAV", "IMP", "TRV", "PLA"].filter(k => f.superficie[SIT[k][1]]).map(k => `<span><s style="border-color:${k === "PLA" ? "#9AA5B1" : SIT[k][0]}"></s>${SIT[k][1]}</span>`).join("")}</div></div>
+      <div class="texto">${f.texto.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+    </div>
+    ${blocoSocio(f.socio, br)}
+    <h3>Trechos no Sistema Nacional de Viação</h3>
+    ${tabela([{ t: "Código SNV" }, { t: "Início" }, { t: "Fim" }, { t: "km ini.", n: 1 }, { t: "km fim", n: 1 }, { t: "Ext. (km)", n: 1 }, { t: "Superfície" }, { t: "Estadual coincidente" }],
+      f.trechos.map(x => `<tr>${td(esc(x.snv))}${td(esc(x.inicio))}${td(esc(x.fim))}${td(num(x.km_ini, 1), 1)}${td(num(x.km_fim, 1), 1)}${td(num(x.extensao, 1), 1)}${td(`<span class="chip">${esc(x.superficie)}</span>`)}${td(esc(x.estadual_coincidente || "—"))}</tr>`), { rolo: 1, fonte: "DNIT, SNV 202607A." })}
+    ${blocoRamais(f.ramais, br)}
+  </section>`;
+  const map = novoMapa("mapaF");
+  const [gFed, gRam, gOae] = await Promise.all(["federais", "ramais", "oae_federais"].map(n => carrega(`dados/geo/${n}.geojson`)));
+  const cor = { DUP: "#FFD400", PAV: "#FF7A00", IMP: "#4ADE80", TRV: "#67C7FF", PLA: "#F4F6FA" };
+  const eixo = L.geoJSON({ type: "FeatureCollection", features: gFed.features.filter(x => x.properties.br === br) }, { style: x => estiloSit(x.properties.superficie, 5),
+    onEachFeature: (x, l) => l.bindPopup(`<div class="pop-t">${br} · ${esc(x.properties.snv)}</div><div class="pop-l">${esc(x.properties.inicio)} → ${esc(x.properties.fim)}</div><div>${esc(x.properties.superficie)} · km ${num(x.properties.km_ini, 1)}–${num(x.properties.km_fim, 1)}</div>`) });
+  contorno(eixo, 5).addTo(map); eixo.addTo(map);
+  map.fitBounds(eixo.getBounds(), { padding: [30, 30] });
+  const cods = new Set(f.ramais.map(r => r.c));
+  const cam = {
+    vmda: L.geoJSON({ type: "FeatureCollection", features: (await carrega("dados/geo/vmda_pnct.geojson")).features.filter(x => x.properties.br === br) }, { style: x => ({ color: corVmda(x.properties.vmda), weight: 9, opacity: .9 }), onEachFeature: (x, l) => l.bindPopup(`VMDA modelado: <b>${num(x.properties.vmda)}</b> veíc./dia`) }),
+    oae: L.geoJSON({ type: "FeatureCollection", features: gOae.features.filter(x => x.properties.br === br) }, { pointToLayer: (x, ll) => L.circleMarker(ll, { radius: 5, color: "#0B1B2B", weight: 1.8, fillColor: "#fff", fillOpacity: 1 }), onEachFeature: (x, l) => l.bindPopup(`<div class="pop-t">${esc(x.properties.tipo)}</div><div>km aprox. ${num(x.properties.km_aprox, 1)}</div><div class="pop-l">${esc(x.properties.codigo)}</div>`) }),
+    ram: L.geoJSON({ type: "FeatureCollection", features: gRam.features.filter(x => cods.has(`${x.properties.codigo}${x.properties.numero}`)) }, { style: { color: "#FF8FC4", weight: 2.2 }, onEachFeature: (x, l) => l.bindPopup(() => popRamal(x.properties)) }),
+  };
+  document.querySelectorAll("#camF input").forEach(i => { const fn = () => i.checked ? cam[i.dataset.c].addTo(map) : cam[i.dataset.c].remove(); i.addEventListener("change", fn); fn(); });
+}
+
+/* ───────── RAMAIS ───────── */
+async function ramais(chave) {
+  const fc = await carrega("dados/geo/ramais.geojson");
+  const todos = fc.features.map(f => ({ ...f.properties, chave: `${f.properties.codigo}_${f.properties.numero}`, f }));
+  const muns = [...new Set(todos.map(r => tit(r.municipio)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const acessos = [...new Set(todos.map(r => r.rodovia_referencia).filter(x => /^(AM|BR)-\d{3}$/.test(x || "")))].sort();
+  const km = todos.reduce((s, r) => s + (r.extensao_km || 0), 0);
+  const porRev = {}; todos.forEach(r => { const k = tit(r.revestimento || "não informado"); porRev[k] = (porRev[k] || 0) + (r.extensao_km || 0); });
+  const porSit = {}; todos.forEach(r => { const k = tit(r.situacao || "sem registro"); porSit[k] = (porSit[k] || 0) + 1; });
+  const porMun = {}; todos.forEach(r => { const k = tit(r.municipio); porMun[k] = (porMun[k] || 0) + 1; });
+  $("#app").innerHTML = `<section class="hero entra">
+      <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+      <h1>Ramais e estradas vicinais</h1>
+      <p>${NF.format(todos.length)} ramais cadastrados em ${muns.length} municípios, somando ${num(km)} km. São eles que levam a produção rural até as rodovias e as rodovias até as comunidades.</p></section>
+    <div class="nums"><div class="num"><b>${NF.format(todos.length)}</b><span>ramais no cadastro</span></div><div class="num"><b>${num(km)} km</b><span>de extensão somada</span></div>
+      <div class="num"><b>${muns.length}</b><span>municípios com ramais</span></div><div class="num"><b>${num(todos.filter(r => /AM-/.test(r.rodovia_referencia || "")).length)}</b><span>com acesso por rodovia estadual</span></div></div>
+    <section class="painel">
+      <div class="grade-mapa">
+        <div>
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.7rem">
+            <div class="busca" style="flex:1 1 220px;min-width:0;margin:0">${icone("busca")}<input id="fRam" type="search" placeholder="Buscar ramal pelo nome" autocomplete="off" aria-label="Buscar ramal"></div>
+            <select class="sel" id="fMun" aria-label="Município"><option value="">Todos os municípios</option>${muns.map(m => `<option>${esc(m)}</option>`).join("")}</select>
+            <select class="sel" id="fAc" aria-label="Rodovia de acesso"><option value="">Todas as rodovias de acesso</option>${acessos.map(m => `<option>${m}</option>`).join("")}</select>
+          </div>
+          <div id="mapaR" class="mapa"></div>
+        </div>
+        <div><div id="fichaR"></div><div id="listaR"></div></div>
+      </div>
+    </section>
+    <div class="grade2">
+      <section class="painel"><h2>Extensão por revestimento</h2><div class="graf"><canvas id="gRev"></canvas></div></section>
+      <section class="painel"><h2>Municípios com mais ramais</h2><div class="graf"><canvas id="gMun"></canvas></div></section>
+    </div>`;
+  const map = novoMapa("mapaR");
+  const camada = L.geoJSON(null, { style: { color: "#FF8FC4", weight: 2 }, onEachFeature: (f, l) => l.on("click", () => { location.hash = `#ramais/${encodeURIComponent(f.properties.codigo + "_" + f.properties.numero)}`; }) }).addTo(map);
+  const destaque = L.layerGroup().addTo(map);
+  const filtra = () => {
+    const q = $("#fRam").value.trim().toLowerCase(), m = $("#fMun").value, a = $("#fAc").value;
+    const sel = todos.filter(r => (!q || (r.nome || "").toLowerCase().includes(q)) && (!m || tit(r.municipio) === m) && (!a || r.rodovia_referencia === a));
+    camada.clearLayers(); camada.addData(sel.map(r => r.f));
+    if (sel.length && (q || m || a)) map.fitBounds(camada.getBounds(), { padding: [20, 20], maxZoom: 12 });
+    $("#listaR").innerHTML = `<h3 style="margin-top:.2rem">${NF.format(sel.length)} ramais</h3>` + tabela([{ t: "Ramal" }, { t: "Município" }, { t: "Acesso" }, { t: "km", n: 1 }],
+      sel.slice(0, 400).map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.chave)}'">${td(esc(tit(r.nome)))}${td(esc(tit(r.municipio)))}${td(esc(r.rodovia_referencia || "—"))}${td(num(r.extensao_km, 1), 1)}</tr>`), { rolo: 1, vazio: "Nenhum ramal com esses filtros." })
+      + (sel.length > 400 ? `<div class="fonte">Mostrando 400 de ${sel.length}; refine a busca.</div>` : "");
+  };
+  ["fRam", "fMun", "fAc"].forEach(id => $("#" + id).addEventListener("input", filtra));
+  filtra(); map.fitBounds(camada.getBounds(), { padding: [20, 20] });
+  const r = chave && todos.find(x => x.chave === decodeURIComponent(chave));
+  if (r) {
+    const l = L.geoJSON(r.f, { style: { color: "#FFD400", weight: 6 } });
+    L.geoJSON(r.f, { style: { color: "#0B1B2B", weight: 9, opacity: .8 } }).addTo(destaque); l.addTo(destaque);
+    map.fitBounds(l.getBounds(), { padding: [60, 60], maxZoom: 14 });
+    $("#fichaR").innerHTML = `<div class="painel entra" style="box-shadow:var(--sombra-lg);margin-bottom:1rem"><h2>${esc(tit(r.nome))}</h2><p class="nota">${esc(tit(r.municipio))} · código ${esc(r.codigo)}-${esc(r.numero)}</p>
+      <dl class="dl"><dt>Extensão</dt><dd>${num(r.extensao_km, 2)} km</dd><dt>Rodovia de acesso</dt><dd>${/^(AM|BR)-\d{3}$/.test(r.rodovia_referencia || "") ? `<a href="#${r.rodovia_referencia.startsWith("BR") ? "federais" : "estaduais"}/${r.rodovia_referencia}">${r.rodovia_referencia}</a>` : esc(r.rodovia_referencia || "—")}</dd>
+      <dt>Ponto de acesso</dt><dd>${esc(r.ponto_referencia || "—")}</dd><dt>Início</dt><dd>${esc(r.local_inicio || "—")}</dd><dt>Término</dt><dd>${esc(r.local_termino || "—")}</dd>
+      <dt>Revestimento</dt><dd>${esc(tit(r.revestimento || "—"))}</dd><dt>Classificação</dt><dd>${esc(tit(r.classificacao || "—"))} · ${esc(tit(r.segmentacao || ""))}</dd><dt>Situação no cadastro</dt><dd>${esc(tit(r.situacao || "—"))}</dd></dl></div>`;
+  }
+  const rev = Object.entries(porRev).sort((a, b) => b[1] - a[1]);
+  grafico("gRev", { type: "bar", data: { labels: rev.map(x => x[0]), datasets: [{ data: rev.map(x => x[1]), backgroundColor: "#1A2B5E", borderRadius: 4 }] }, options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => num(c.parsed.x, 1) + " km" } } }, scales: { x: { ticks: { callback: v => num(v) + " km" } }, y: { grid: { display: false } } } } });
+  const mun = Object.entries(porMun).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  grafico("gMun", { type: "bar", data: { labels: mun.map(x => x[0]), datasets: [{ data: mun.map(x => x[1]), backgroundColor: "#F5A623", borderRadius: 4 }] }, options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } } } } });
+}
+
+/* ───────── MÉTODO ───────── */
+function metodo() {
+  const p = D.meta.parametros_trafego, est = D.estaduais.filter(e => e.trafego);
+  $("#app").innerHTML = `<section class="hero entra"><h1>Como o tráfego de 2011 foi trazido para ${p.horizonte}</h1><p>A última contagem sistemática das rodovias estaduais é de 2011. A estimativa atual refaz a regra do próprio Plano Rodoviário com a frota real observada desde então.</p></section>
+  <section class="painel texto">
+    <h2>O método</h2>
+    <p>O Plano Rodoviário do Estado do Amazonas contou o tráfego de 17 rodovias em 2011, durante 7 dias contínuos e 24 horas por dia, conforme o Manual de Estudos de Tráfego do DNIT. Sem série histórica de contagens, projetou o volume com taxa de 1,96 % ao ano: 25 % do crescimento médio da frota licenciada nos municípios acessados entre 2001 e 2011.</p>
+    <p>A frota de 2011 a ${p.ultimo_ano_frota} é conhecida pelos registros do IBGE e da SENATRAN. A estimativa usa a mesma estrutura, VMD(t) = VMD(2011) × (1 + i)^(t − 2011), em três cenários: a taxa original de 1,96 %; o cenário central, com 25 % da taxa observada da frota; e o cenário alto, com 50 %. A classe de projeto segue o Manual de Projeto Geométrico do DNER, e a relação volume/capacidade usa K = ${num(p.fator_k, 2)}, capacidade de ${num(p.cap_pista_simples_vh)} veíc./h em pista simples e ${num(p.cap_faixa_vh)} veíc./h por faixa em pista dupla.</p>
+    <p>Para a AM-070 e a AM-352, a base é a recontagem de novembro de 2011, feita após a inauguração da ponte sobre o rio Negro. Nas vias urbanas de Manaus (AM-020 e AM-450) a relação volume/capacidade não é calculada.</p>
+    <h3>Resultado por rodovia</h3>
+    ${tabela([{ t: "Rodovia" }, { t: "Base 2011", n: 1 }, { t: "Frota: variação", n: 1 }, { t: "Taxa central", n: 1 }, { t: "Plano", n: 1 }, { t: "Central", n: 1 }, { t: "Alto", n: 1 }, { t: "Classe" }],
+      est.map(e => { const t = e.trafego; return `<tr class="clic" onclick="location.hash='#estaduais/${e.codigo}'">${td(`<b>${e.codigo}</b>`)}${td(num(t.base), 1)}${td("+" + num(t.cresc, 0) + " %", 1)}${td(num(25 * t.i_frota, 2) + " %", 1)}${td(num(t.cen.plano.vmd), 1)}${td(`<b>${num(t.cen.central.vmd)}</b>`, 1)}${td(num(t.cen.alto.vmd), 1)}${td(t.cen.central.classe_dner)}</tr>`; }),
+      { fonte: "Plano Rodoviário do Estado do Amazonas (2011); IBGE; SENATRAN; elaboração própria." })}
+    <h3>Limites da estimativa</h3>
+    <p>Os cenários são estimativas fundamentadas e não substituem nova contagem. Volumes federais são modelados pelo DNIT. A condição do pavimento vem do índice de irregularidade (IRI) medido com RoadLab Pro em 2024 e não equivale ao Índice de Condição da Manutenção do DNIT.</p>
+  </section>`;
+}
+
+/* ───────── DOCUMENTOS ───────── */
+function documentos() {
+  const fontes = ["Plano Rodoviário do Estado do Amazonas — Laghi Engenharia, 2011 (contagens de tráfego, quadros consolidados, plantas de situação).",
+    "Sistema Rodoviário Estadual do Amazonas, 2026 — relação de rodovias, trechos e base georreferenciada.",
+    "DNIT — Sistema Nacional de Viação, versão 202607A; PNCT, modelagem do VMDA 2023; cadastro de obras de arte especiais.",
+    "IBGE — estimativas de população (2026), PIB dos municípios (2023) e frota municipal (SENATRAN, 2006–2025).",
+    "Levantamento de irregularidade longitudinal com RoadLab Pro, out.–dez. 2024.", "Cadastro de ramais e estradas vicinais do Amazonas, 2026.", "Esri World Imagery (Maxar, Earthstar Geographics)."];
+  $("#app").innerHTML = `<section class="hero entra"><h1>Dossiê e fontes</h1><p>O perfil completo de cada rodovia, com mapas sobre satélite, tabelas e referências, está reunido em um único documento técnico no padrão ABNT.</p></section>
+  <section class="painel">
+    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Rodovias do Amazonas — dossiê técnico (PDF)</b><span>Perfil técnico, econômico e social das rodovias estaduais e federais · leitura e impressão</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.docx">${icone("doc")}<div><b>Rodovias do Amazonas — dossiê técnico (DOCX)</b><span>Versão editável</span></div><span class="btn btn-ln">${icone("baixa")}DOCX</span></a>
+  </section>
+  <section class="painel texto"><h2>Fontes</h2><ul style="padding-left:1.1rem">${fontes.map(f => `<li style="margin:.35rem 0;font-size:.9rem;line-height:1.55;max-width:80ch">${esc(f)}</li>`).join("")}</ul>
+    <p class="fonte">Dados consolidados em ${esc(D.meta.gerado.split("-").reverse().join("/"))}.</p></section>`;
+}
+
+/* ───────── roteador ───────── */
+async function rota() {
+  const [r, arg] = (location.hash.slice(1) || "panorama").split("/");
+  document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("ativo", a.dataset.r === r));
+  $("#sidebar").classList.remove("aberta"); $("#veu").classList.remove("aberta");
+  limpaGraficos();
+  try {
+    if (r === "estaduais" || r === "federais") {
+      const lista = r === "estaduais" ? D.estaduais : D.federais;
+      if (!document.getElementById("fichas") || document.body.dataset.r !== r) { $("#app").innerHTML = seletor(r, lista, arg); ligaFiltro(); }
+      document.querySelectorAll("#fichas .ficha").forEach(f => f.classList.toggle("ativa", f.getAttribute("href") === `#${r}/${arg}`));
+      const cod = arg || lista[0].codigo;
+      await (r === "estaduais" ? perfilEstadual(cod) : perfilFederal(cod));
+      if (arg) document.getElementById("perfil").scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (r === "ramais") await ramais(arg);
+    else if (r === "metodo") metodo();
+    else if (r === "documentos") documentos();
+    else { await panorama(); }
+    document.body.dataset.r = r;
+    if (!["estaduais", "federais"].includes(r)) window.scrollTo(0, 0);
+  } catch (err) {
+    console.error(err);
+    $("#app").innerHTML = `<div class="vazio">Não foi possível carregar esta seção (${esc(err.message)}). Recarregue a página.</div>`;
+  }
+}
+$("#abreMenu").addEventListener("click", () => { $("#sidebar").classList.add("aberta"); $("#veu").classList.add("aberta"); });
+$("#veu").addEventListener("click", () => { $("#sidebar").classList.remove("aberta"); $("#veu").classList.remove("aberta"); });
+window.addEventListener("hashchange", rota);
+carrega("dados/plataforma.json").then(async d => {
+  D = d;
+  $("#c-est").textContent = D.estaduais.length; $("#c-fed").textContent = D.federais.length;
+  carrega("dados/geo/ramais.geojson").then(g => $("#c-ram").textContent = NF.format(g.features.length));
+  await rota();
+}).catch(err => { $("#app").innerHTML = `<div class="vazio">Falha ao carregar os dados (${esc(err.message)}).</div>`; });
+</script>
+</body>
+</html>
