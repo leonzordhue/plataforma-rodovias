@@ -221,7 +221,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
-  <symbol id="i-metodo" viewBox="0 0 24 24"><path d="M4 19h16M6 16l4-6 4 3 5-8"/></symbol>
   <symbol id="i-aviao" viewBox="0 0 24 24"><path d="M10.5 3.5c0-.9.7-1.5 1.5-1.5s1.5.6 1.5 1.5V9l7 4v2l-7-2v4.5l2.5 2V21L12 20l-4 1v-1.5l2.5-2V13l-7 2v-2l7-4z"/></symbol>
   <symbol id="i-pista" viewBox="0 0 24 24"><path d="M9 2 5 22M15 2l4 20M12 4v3M12 11v3M12 18v2"/></symbol>
   <symbol id="i-lei" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M7 7l-3 6a3 3 0 0 0 6 0zM17 7l-3 6a3 3 0 0 0 6 0z"/></symbol>
@@ -241,8 +240,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <a href="#estadualizacao" data-r="estadualizacao"><svg class="ic"><use href="#i-lei"/></svg>Estadualização<span class="cont" id="c-est-lei"></span></a>
     <div class="nav-grupo">Transporte aéreo</div>
     <a href="#aerodromos" data-r="aerodromos"><svg class="ic"><use href="#i-aviao"/></svg>Aeródromos<span class="cont" id="c-aer"></span></a>
-    <div class="nav-grupo">Referência</div>
-    <a href="#metodo" data-r="metodo"><svg class="ic"><use href="#i-metodo"/></svg>Tráfego e método</a>
   </nav>
   <div class="sidebar-rodape">Dados de 2011 a 2026 reunidos de fontes públicas e levantamentos técnicos. Imagem de satélite: Esri World Imagery.</div>
 </aside>
@@ -679,11 +676,7 @@ async function estadualizacao() {
       ${tabela([{ t: "Código proposto" }, { t: "Trecho" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }, { t: "Situação" }],
         cand.map(p => `<tr>${td(`<b>${p.codigo}</b>`)}${td(esc(p.trecho))}${td(esc(p.municipio))}${td(num(p.extensao_declarada, 2), 1)}${td(esc(p.pavimento || "—"))}${td(esc(p.situacao || "—"))}</tr>`),
         { fonte: "cadastro dos processos de estadualização (2026)." })}</section>
-    <div class="grade2">
-      <section class="painel texto"><h2>Como funciona o trâmite</h2><ol style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.passos.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ol></section>
-      <section class="painel texto"><h2>Critérios de aceitação</h2><ul style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.criterios_aceitacao.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ul>
-        <h2 style="margin-top:1.2rem">Documentos exigidos do município</h2><ul style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.documentos.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ul></section>
-    </div>`;
+`;
   const map = novoMapa("mapaE");
   const gj = await carrega("dados/geo/estadualizacao.geojson");
   const cor = g => g === "concluida" ? "#4ADE80" : "#FFD400";
@@ -695,35 +688,12 @@ async function estadualizacao() {
   map.fitBounds(camada.getBounds(), { padding: [30, 30] });
 }
 
-/* ───────── MÉTODO ───────── */
-function metodo() {
-  const p = D.meta.parametros_trafego, est = D.estaduais.filter(e => e.trafego);
-  $("#app").innerHTML = `<section class="hero entra"><h1>Como o tráfego de 2011 foi trazido para ${p.horizonte}</h1><p>A última contagem sistemática das rodovias estaduais é de 2011. A estimativa atual refaz a regra do próprio Plano Rodoviário com a frota real observada desde então.</p></section>
-  <section class="painel texto">
-    <h2>O método</h2>
-    <p>O Plano Rodoviário do Estado do Amazonas contou o tráfego de 17 rodovias em 2011, durante 7 dias contínuos e 24 horas por dia, conforme o Manual de Estudos de Tráfego do DNIT. Sem série histórica de contagens, projetou o volume com taxa de 1,96 % ao ano: 25 % do crescimento médio da frota licenciada nos municípios acessados entre 2001 e 2011.</p>
-    <p>A frota de 2011 a ${p.ultimo_ano_frota} é conhecida pelos registros do IBGE e da SENATRAN. A estimativa usa a mesma estrutura, VMD(t) = VMD(2011) × (1 + i)^(t − 2011), em três cenários: a taxa original de 1,96 %; o cenário central, com 25 % da taxa observada da frota; e o cenário alto, com 50 %. A classe de projeto segue o Manual de Projeto Geométrico do DNER, e a relação volume/capacidade usa K = ${num(p.fator_k, 2)}, capacidade de ${num(p.cap_pista_simples_vh)} veíc./h em pista simples e ${num(p.cap_faixa_vh)} veíc./h por faixa em pista dupla.</p>
-    <p>Para a AM-070 e a AM-352, a base é a recontagem de novembro de 2011, feita após a inauguração da ponte sobre o rio Negro. Nas vias urbanas de Manaus (AM-020 e AM-450) a relação volume/capacidade não é calculada.</p>
-    <h3>Resultado por rodovia</h3>
-    ${tabela([{ t: "Rodovia" }, { t: "Base 2011", n: 1 }, { t: "Frota: variação", n: 1 }, { t: "Taxa central", n: 1 }, { t: "Plano", n: 1 }, { t: "Central", n: 1 }, { t: "Alto", n: 1 }, { t: "Classe" }],
-      est.map(e => { const t = e.trafego; return `<tr class="clic" onclick="location.hash='#estaduais/${e.codigo}'">${td(`<b>${e.codigo}</b>`)}${td(num(t.base), 1)}${td("+" + num(t.cresc, 0) + " %", 1)}${td(num(25 * t.i_frota, 2) + " %", 1)}${td(num(t.cen.plano.vmd), 1)}${td(`<b>${num(t.cen.central.vmd)}</b>`, 1)}${td(num(t.cen.alto.vmd), 1)}${td(t.cen.central.classe_dner)}</tr>`; }),
-      { fonte: "Plano Rodoviário do Estado do Amazonas (2011); IBGE; SENATRAN." })}
-    <h3>Limites da estimativa</h3>
-    <p>Os cenários são estimativas fundamentadas e não substituem nova contagem. Volumes federais são modelados pelo DNIT. A condição do pavimento vem do índice de irregularidade (IRI) medido com RoadLab Pro em 2024 e não equivale ao Índice de Condição da Manutenção do DNIT.</p>
-  </section>`;
-}
 
 /* ───────── AERÓDROMOS ───────── */
 const GRUPO_AER = {
   estadual: ["#F5A623", "Outorga estadual", 9], concedido: ["#FFFFFF", "Concessão federal", 8],
   municipal: ["#67C7FF", "Outorga municipal", 6.5], pendente: ["#FF9FCB", "Público autorizado", 5.5],
 };
-const OUTORGAS = [
-  ["Delegação por convênio", "Estado ou município", "A União transfere por convênio a operação, a manutenção e a exploração. O delegatário assume custos, tarifas e a homologação."],
-  ["Concessão comum", "Empresa privada", "Contrato longo com pagamento de outorga e obrigações de investimento. No Amazonas, o Bloco Norte reúne Manaus, Tefé e Tabatinga desde 2021."],
-  ["Concessão patrocinada (PPP)", "Empresa privada com contraprestação pública", "Tarifa complementada pelo poder público. Proposta para oito aeroportos do Amazonas em 2020 e retirada em 2024."],
-  ["Autorização", "Pessoa jurídica privada", "Aeródromo público construído com recursos privados, sem contrato de concessão."],
-];
 let AERO;
 
 async function aerodromos(id) {
@@ -769,10 +739,6 @@ async function aerodromos(id) {
       ${tabela([{ t: "OACI" }, { t: "Município" }, { t: "Pista (m)", n: 1 }, { t: "Superfície" }, { t: "Resistência" }, { t: "2012", n: 1 }, { t: "2019", n: 1 }, { t: "2025", n: 1 }, { t: "Serviço regular 2031", n: 1 }],
         est.map(e => `<tr class="clic" onclick="location.hash='#aerodromos/${e.id}'">${td(`<b>${esc(e.oaci || "—")}</b>`)}${td(esc(e.municipio))}${td(e.oaci ? `${num(e.comp)} × ${num(e.larg)}` : "1.200 × 30", 1)}${td(esc(e.sup || e.p2011.piso))}${td(esc(e.resist || "—"))}${td(num(pax(e, "2012")), 1)}${td(num(pax(e, "2019")), 1)}${td(`<b>${num(pax(e, "2025"))}</b>`, 1)}${td(e.projecao["2031"] ? num(e.projecao["2031"].servico_regular) : "—", 1)}</tr>`),
         { fonte: "ANAC, cadastro de aeródromos e Dados Estatísticos do Transporte Aéreo (2026). Serviço regular: demanda de municípios de mesmo porte e distância de Manaus nos anos de melhor oferta." })}
-    </section>
-    <section class="painel entra texto"><h2>Quem explora um aeródromo</h2>
-      <p>A infraestrutura aeroportuária é serviço público da União. O Código Brasileiro de Aeronáutica prevê que um aeródromo público seja explorado diretamente pela União, por empresa federal, por convênio com estados e municípios ou por concessão e autorização. Quem recebe a outorga responde pela segurança, pela homologação e pelas tarifas, e a ANAC fiscaliza.</p>
-      ${tabela([{ t: "Modalidade" }, { t: "Quem explora" }, { t: "Como funciona" }], OUTORGAS.map(o => `<tr>${o.map(x => td(esc(x))).join("")}</tr>`), { fonte: "Lei n.º 7.565/1986; Lei n.º 11.079/2004; Decreto n.º 7.624/2011; Decreto n.º 7.871/2012." })}
     </section>`;
 
   // mapa
@@ -870,7 +836,6 @@ async function rota() {
       if (arg) document.getElementById("perfil").scrollIntoView({ behavior: "smooth", block: "start" });
     } else if (r === "ramais") await ramais(arg);
     else if (r === "estadualizacao") await estadualizacao();
-    else if (r === "metodo") metodo();
     else if (r === "aerodromos") await aerodromos(arg);
     else { await panorama(); }
     document.body.dataset.r = r;
