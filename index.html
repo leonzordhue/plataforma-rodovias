@@ -438,18 +438,16 @@ const planejada = e => /Planejada/.test(e.situacao) && !/Pavimentada|Duplicada/.
 function textoSemTrafego(cod, e) {
   const dem = Number(e.plano.demanda) || null;
   if (planejada(e)) {
-    return `A ${cod} ainda não foi implantada, de modo que não há tráfego a medir.` +
-      (dem ? ` O Plano Rodoviário de 2011 estimou demanda potencial de ${num(dem)} veículos por dia para o eixo e o classificou em ${e.plano.prioridade}º lugar entre as rodovias planejadas.` : "");
+    return `A ${cod} ainda não foi implantada e não há dados de tráfego.` +
+      (dem ? ` O Plano Rodoviário de 2011 estimou para o eixo demanda potencial de ${num(dem)} veículos por dia.` : "");
   }
-  return `A pesquisa de campo de 2011 cobriu dezessete rodovias e não alcançou a ${cod}.` +
-    (dem ? ` A demanda potencial estimada naquele estudo foi de ${num(dem)} veículos por dia.` : "") +
-    " Uma contagem de sete dias resolve a lacuna a custo baixo.";
+  return `Não há dados de contagem de tráfego para a ${cod}.`;
 }
 function textoSemPavimento(cod, e) {
-  const cons = e.plano.conservacao ? ` O levantamento de 2011 classificou a conservação como ${e.plano.conservacao.toLowerCase()}.` : "";
-  if (planejada(e)) return `Sem pista implantada, a ${cod} não tem pavimento a avaliar.`;
-  if (/Leito natural|Implantada/.test(e.situacao)) return `A ${cod} opera em leito natural, sem revestimento. A trafegabilidade depende do período chuvoso e da conservação do leito.${cons}`;
-  return `A campanha de 2024 mediu treze rodovias e não incluiu a ${cod}.${cons}`;
+  const cons = e.plano.conservacao ? ` Em 2011, a conservação foi classificada como ${e.plano.conservacao.toLowerCase()}.` : "";
+  if (planejada(e)) return `Não há dados de condição do pavimento: a ${cod} ainda não foi implantada.`;
+  if (/Leito natural|Implantada/.test(e.situacao)) return `Não há dados de condição do pavimento: a ${cod} opera em leito natural.${cons}`;
+  return `Não há dados de condição do pavimento para a ${cod}.${cons}`;
 }
 
 /* ───────── perfil estadual ───────── */
