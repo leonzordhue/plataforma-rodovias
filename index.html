@@ -429,8 +429,8 @@ function blocoSocio(s, cod) {
     ${tabela([{ t: "Município" }, { t: "População 2026", n: 1 }, { t: "PIB 2023 (R$ mi)", n: 1 }, { t: `Frota ${D.meta.ano_frota}`, n: 1 }], linhas, { fonte: "IBGE; SENATRAN." })}`;
 }
 function blocoRamais(ramais, cod) {
-  const linhas = ramais.map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.c.replace(/(\D+)(\d+)$/, "$1_$2"))}'">${td(num(r.km, 1) + (r.o === "g" ? "*" : ""), 1)}${td(esc(tit(r.n)))}${td(esc(r.m))}${td(num(r.e, 1), 1)}${td(esc(tit(r.r || "—")))}${td(esc(tit(r.s || "—")))}</tr>`);
-  return `<h3>Ramais conectados (${ramais.length})</h3>${tabela([{ t: "km", n: 1 }, { t: "Ramal" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }, { t: "Situação" }], linhas,
+  const linhas = ramais.map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.c.replace(/(\D+)(\d+)$/, "$1_$2"))}'">${td(num(r.km, 1) + (r.o === "g" ? "*" : ""), 1)}${td(esc(tit(r.n)))}${td(esc(r.m))}${td(num(r.e, 1), 1)}${td(esc(tit(r.r || "—")))}</tr>`);
+  return `<h3>Ramais conectados (${ramais.length})</h3>${tabela([{ t: "km", n: 1 }, { t: "Ramal" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }], linhas,
     { rolo: 1, vazio: "Não há ramal associado a esta rodovia.", fonte: "cadastro de ramais; *km obtido pela projeção do início do ramal sobre o eixo." })}`;
 }
 
@@ -562,7 +562,6 @@ async function ramais(chave) {
   const acessos = [...new Set(todos.map(r => r.rodovia_referencia).filter(x => /^(AM|BR)-\d{3}$/.test(x || "")))].sort();
   const km = todos.reduce((s, r) => s + (r.extensao_km || 0), 0);
   const porRev = {}; todos.forEach(r => { const k = tit(r.revestimento || "não informado"); porRev[k] = (porRev[k] || 0) + (r.extensao_km || 0); });
-  const porSit = {}; todos.forEach(r => { const k = tit(r.situacao || "sem registro"); porSit[k] = (porSit[k] || 0) + 1; });
   const porMun = {}; todos.forEach(r => { const k = tit(r.municipio); porMun[k] = (porMun[k] || 0) + 1; });
   $("#app").innerHTML = `<section class="hero entra">
       <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
@@ -609,7 +608,7 @@ async function ramais(chave) {
     $("#fichaR").innerHTML = `<div class="painel entra" style="box-shadow:var(--sombra-lg);margin-bottom:1rem"><h2>${esc(tit(r.nome))}</h2><p class="nota">${esc(tit(r.municipio))} · código ${esc(r.codigo)}-${esc(r.numero)}</p>
       <dl class="dl"><dt>Extensão</dt><dd>${num(r.extensao_km, 2)} km</dd><dt>Rodovia de acesso</dt><dd>${/^(AM|BR)-\d{3}$/.test(r.rodovia_referencia || "") ? `<a href="#${r.rodovia_referencia.startsWith("BR") ? "federais" : "estaduais"}/${r.rodovia_referencia}">${r.rodovia_referencia}</a>` : esc(r.rodovia_referencia || "—")}</dd>
       <dt>Ponto de acesso</dt><dd>${esc(r.ponto_referencia || "—")}</dd><dt>Início</dt><dd>${esc(r.local_inicio || "—")}</dd><dt>Término</dt><dd>${esc(r.local_termino || "—")}</dd>
-      <dt>Revestimento</dt><dd>${esc(tit(r.revestimento || "—"))}</dd><dt>Classificação</dt><dd>${esc(tit(r.classificacao || "—"))} · ${esc(tit(r.segmentacao || ""))}</dd><dt>Situação no cadastro</dt><dd>${esc(tit(r.situacao || "—"))}</dd></dl></div>`;
+      <dt>Revestimento</dt><dd>${esc(tit(r.revestimento || "—"))}</dd><dt>Classificação</dt><dd>${esc(tit(r.classificacao || "—"))} · ${esc(tit(r.segmentacao || ""))}</dd></dl></div>`;
   }
   const rev = Object.entries(porRev).sort((a, b) => b[1] - a[1]);
   grafico("gRev", { type: "bar", data: { labels: rev.map(x => x[0]), datasets: [{ data: rev.map(x => x[1]), backgroundColor: "#1A2B5E", borderRadius: 4 }] }, options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => num(c.parsed.x, 1) + " km" } } }, scales: { x: { ticks: { callback: v => num(v) + " km" } }, y: { grid: { display: false } } } } });
@@ -701,6 +700,7 @@ function documentos() {
     <a class="doc" href="documentos/Resumo_Referencia_Rodovias.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Resumo de referência</b><span>Os números da malha em poucas páginas, para consulta rápida</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
     <a class="doc" href="documentos/Dossie_Estadualizacao_Rodovias.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Estadualização de estradas vicinais</b><span>Trâmite, rodovias incorporadas em 2021 e trechos em estudo</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
     <a class="doc" href="documentos/Dossie_Aerodromos_Amazonas.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Aeródromos do Amazonas</b><span>Outorgas, infraestrutura, demanda desde 2008 e projeções dos aeródromos de outorga estadual</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Resumo_Referencia_Aerodromos.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Aeródromos: resumo de referência</b><span>Os números da rede de aeródromos em poucas páginas, para consulta rápida</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
     <a class="doc" href="documentos/Lei_5692_2021_Estadualizacao.pdf" target="_blank" rel="noopener">${icone("lei")}<div><b>Lei estadual n.º 5.692, de 17 de novembro de 2021</b><span>Autoriza a estadualização das estradas vicinais relacionadas no texto</span></div><span class="btn btn-ln">${icone("baixa")}PDF</span></a>
     <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.docx">${icone("doc")}<div><b>Versões editáveis</b><span>Dossiê técnico em DOCX; o resumo e o dossiê de estadualização também estão disponíveis nesse formato</span></div><span class="btn btn-ln">${icone("baixa")}DOCX</span></a>
   </section>
