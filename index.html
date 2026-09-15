@@ -193,6 +193,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
   <symbol id="i-metodo" viewBox="0 0 24 24"><path d="M4 19h16M6 16l4-6 4 3 5-8"/></symbol>
+  <symbol id="i-lei" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M7 7l-3 6a3 3 0 0 0 6 0zM17 7l-3 6a3 3 0 0 0 6 0z"/></symbol>
 </svg>
 
 <aside class="sidebar" id="sidebar">
@@ -206,6 +207,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <a href="#estaduais" data-r="estaduais"><svg class="ic"><use href="#i-estadual"/></svg>Rodovias estaduais<span class="cont" id="c-est"></span></a>
     <a href="#federais" data-r="federais"><svg class="ic"><use href="#i-federal"/></svg>Rodovias federais<span class="cont" id="c-fed"></span></a>
     <a href="#ramais" data-r="ramais"><svg class="ic"><use href="#i-ramal"/></svg>Ramais<span class="cont" id="c-ram"></span></a>
+    <a href="#estadualizacao" data-r="estadualizacao"><svg class="ic"><use href="#i-lei"/></svg>Estadualização<span class="cont" id="c-est-lei"></span></a>
     <div class="nav-grupo">Referência</div>
     <a href="#metodo" data-r="metodo"><svg class="ic"><use href="#i-metodo"/></svg>Tráfego e método</a>
     <a href="#documentos" data-r="documentos"><svg class="ic"><use href="#i-doc"/></svg>Dossiê e fontes</a>
@@ -224,7 +226,9 @@ const $ = s => document.querySelector(s);
 const NF = new Intl.NumberFormat("pt-BR");
 const num = (v, c = 0) => v == null || v === "" || isNaN(v) ? "—" : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const tit = s => String(s || "").toLowerCase().replace(/(^|\s|-)(\S)/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Da|De|Do|Das|Dos|E)\b/g, m => m.toLowerCase());
+const tit = s => String(s || "").toLowerCase().replace(/(^|\s|-)(\S)/g, (m, a, b) => a + b.toUpperCase())
+  .replace(/\b(Da|De|Do|Das|Dos|E)\b/g, m => m.toLowerCase())
+  .replace(/\b(am|br)-(\d{3})\b/gi, (m, s, n) => s.toUpperCase() + "-" + n);  // código de rodovia não vira "Br-317"
 const icone = (id, cls = "ic") => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
 
 const SIT = { // cores por situação física (mesma legenda dos mapas do dossiê)
@@ -303,14 +307,14 @@ async function panorama() {
   <section class="hero entra">
     <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
     <h1>Onde estão, como estão e a quem servem as rodovias do Amazonas</h1>
-    <p>${est.length} rodovias estaduais, ${fed.length} rodovias federais e ${NF.format(ramais.length)} ramais reunidos em mapa, com extensão, situação física, tráfego estimado para ${D.meta.horizonte}, condição do pavimento e população atendida.</p>
+    <p>${est.length} rodovias estaduais, ${fed.length} rodovias federais e ${NF.format(D.meta.ramais_cadastrados)} ramais reunidos em mapa, com extensão, situação física, tráfego estimado para ${D.meta.horizonte}, condição do pavimento e população atendida.</p>
     <div class="acoes"><a class="btn btn-am" href="#estaduais">${icone("estadual")}Consultar uma rodovia</a><a class="btn btn-cl" href="documentos/Dossie_Rodovias_Amazonas.pdf" target="_blank" rel="noopener">${icone("baixa")}Baixar o dossiê (PDF)</a></div>
   </section>
   <div class="nums entra">
     <div class="num"><b>${num(kmEst)} km</b><span>de rodovias estaduais cadastradas, ${num(kmPla)} km só planejados</span></div>
     <div class="num"><b>${num(kmPav)} km</b><span>estaduais pavimentados ou duplicados</span></div>
     <div class="num"><b>${num(kmFed)} km</b><span>de rodovias federais no Amazonas, ${num(fedPav)} km pavimentados</span></div>
-    <div class="num"><b>${NF.format(ramais.length)}</b><span>ramais cadastrados, ${num(kmRam)} km de estradas vicinais</span></div>
+    <div class="num"><b>${NF.format(D.meta.ramais_cadastrados)}</b><span>ramais cadastrados, ${num(D.meta.ramais_km)} km de estradas vicinais</span></div>
     <div class="num"><b>+${num(100 * (fr1 / fr0 - 1))} %</b><span>de veículos no estado entre 2011 e ${D.meta.ano_frota} (${num(fr1)} veículos)</span></div>
   </div>
   <section class="painel entra">
@@ -427,7 +431,25 @@ function blocoSocio(s, cod) {
 function blocoRamais(ramais, cod) {
   const linhas = ramais.map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.c.replace(/(\D+)(\d+)$/, "$1_$2"))}'">${td(num(r.km, 1) + (r.o === "g" ? "*" : ""), 1)}${td(esc(tit(r.n)))}${td(esc(r.m))}${td(num(r.e, 1), 1)}${td(esc(tit(r.r || "—")))}${td(esc(tit(r.s || "—")))}</tr>`);
   return `<h3>Ramais conectados (${ramais.length})</h3>${tabela([{ t: "km", n: 1 }, { t: "Ramal" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }, { t: "Situação" }], linhas,
-    { rolo: 1, vazio: "Nenhum ramal cadastrado conectado a esta rodovia.", fonte: "cadastro de ramais; *km obtido pela projeção do início do ramal sobre o eixo." })}`;
+    { rolo: 1, vazio: "Não há ramal associado a esta rodovia.", fonte: "cadastro de ramais; *km obtido pela projeção do início do ramal sobre o eixo." })}`;
+}
+
+const planejada = e => /Planejada/.test(e.situacao) && !/Pavimentada|Duplicada/.test(e.situacao);
+function textoSemTrafego(cod, e) {
+  const dem = Number(e.plano.demanda) || null;
+  if (planejada(e)) {
+    return `A ${cod} ainda não foi implantada, de modo que não há tráfego a medir.` +
+      (dem ? ` O Plano Rodoviário de 2011 estimou demanda potencial de ${num(dem)} veículos por dia para o eixo e o classificou em ${e.plano.prioridade}º lugar entre as rodovias planejadas.` : "");
+  }
+  return `A pesquisa de campo de 2011 cobriu dezessete rodovias e não alcançou a ${cod}.` +
+    (dem ? ` A demanda potencial estimada naquele estudo foi de ${num(dem)} veículos por dia.` : "") +
+    " Uma contagem de sete dias resolve a lacuna a custo baixo.";
+}
+function textoSemPavimento(cod, e) {
+  const cons = e.plano.conservacao ? ` O levantamento de 2011 classificou a conservação como ${e.plano.conservacao.toLowerCase()}.` : "";
+  if (planejada(e)) return `Sem pista implantada, a ${cod} não tem pavimento a avaliar.`;
+  if (/Leito natural|Implantada/.test(e.situacao)) return `A ${cod} opera em leito natural, sem revestimento. A trafegabilidade depende do período chuvoso e da conservação do leito.${cons}`;
+  return `A campanha de 2024 mediu treze rodovias e não incluiu a ${cod}.${cons}`;
 }
 
 /* ───────── perfil estadual ───────── */
@@ -457,20 +479,25 @@ async function perfilEstadual(cod) {
     ${t ? `<p class="nota">Base: ${t.recontagem ? "recontagem de novembro de 2011, após a inauguração da ponte sobre o rio Negro" : "contagem classificatória de 7 dias do Plano Rodoviário (2011)"}, ${num(t.base)} veículos/dia. A frota de ${t.ref.join(", ")} cresceu ${num(t.cresc, 1)} % entre 2011 e ${D.meta.ano_frota} (${num(100 * t.i_frota, 2)} % a.a.).</p>
       <div class="cenarios">${[["plano", "Tendência do Plano", "1,96 % a.a."], ["central", "Cenário central", "25 % do crescimento da frota"], ["alto", "Cenário alto", "50 % do crescimento da frota"]].map(([k, n, d]) =>
         `<div class="cen ${k === "central" ? "central" : ""}"><small>${n} · ${d}</small><b>${num(cen[k].vmd)}</b><small>veíc./dia · classe ${cen[k].classe_dner}${cen[k].saturacao != null ? ` · v/c ${num(cen[k].saturacao, 2)}` : " · via urbana"}</small></div>`).join("")}</div>`
-      : `<div class="vazio">A ${cod} não teve contagem no Plano Rodoviário de 2011. Não se apresenta estimativa para não produzir um volume sem observação.</div>`}
+      : `<div class="vazio">${textoSemTrafego(cod, e)}</div>`}
     <h3>Condição do pavimento (2024)</h3>
     ${iri ? `<p class="nota">${num(iri.extensao_levantada_km, 1)} km levantados com RoadLab Pro · ${iri.n_buracos} buracos registrados.</p>
       <div class="dist">${iri.dist_pct.map((v, i) => `<i title="${NIVEIS[i][0]}: ${num(v, 1)} %" style="width:${v}%;background:${NIVEIS[i][1]}"></i>`).join("")}</div>
       <div class="legenda">${iri.dist_pct.map((v, i) => `<span><s style="border-color:${NIVEIS[i][1]}"></s>${NIVEIS[i][0]} ${num(v, 1)} %</span>`).join("")}</div>`
-      : `<div class="vazio">Sem levantamento de condição do pavimento nesta rodovia.</div>`}
+      : `<div class="vazio">${textoSemPavimento(cod, e)}</div>`}
     ${blocoSocio(e.socio, cod)}
     <h3>Trechos cadastrados</h3>
     ${tabela([{ t: "Código" }, { t: "Início" }, { t: "Fim" }, { t: "km ini.", n: 1 }, { t: "km fim", n: 1 }, { t: "Ext. (km)", n: 1 }, { t: "Situação" }, { t: "Revestimento" }],
       e.trechos.map(x => `<tr>${td(esc(x.codigo))}${td(esc(x.inicio))}${td(esc(x.fim))}${td(num(x.km_ini, 2), 1)}${td(num(x.km_fim, 2), 1)}${td(num(x.extensao, 2), 1)}${td(chipSit(x.situacao))}${td(esc(x.revestimento || "—"))}</tr>`), { fonte: "Sistema Rodoviário Estadual (2026)." })}
     ${blocoRamais(e.ramais, cod)}
     <h3>Obras de arte especiais</h3>
-    ${tabela([{ t: "km", n: 1 }, { t: "Tipo" }, { t: "Denominação" }, { t: "Curso transposto" }, { t: "Comprimento (m)", n: 1 }],
-      e.oae.map(o => `<tr>${td(num(o.km, 1), 1)}${td(esc(o.tipo))}${td(esc(o.nome || "—"))}${td(esc(o.curso || "—"))}${td(num(o.comprimento, 1), 1)}</tr>`), { vazio: e.plano.pontes ? `O Plano de 2011 declara ${e.plano.pontes} pontes nesta rodovia, sem inventário localizado.` : "Sem obra de arte especial inventariada.", fonte: "inventário de meios de transposição (2024); Plano Rodoviário (2011)." })}
+    ${e.oae.length ? tabela([{ t: "km", n: 1 }, { t: "Tipo" }, { t: "Denominação" }, { t: "Curso transposto" }, { t: "Município" }, { t: "Largura (m)", n: 1 }, { t: "Comprimento (m)", n: 1 }],
+      e.oae.map(o => `<tr>${td(num(o.km, 1), 1)}${td(esc(o.tipo))}${td(esc(tit(o.nome || "—")))}${td(esc(o.curso || "—"))}${td(esc(o.municipio || "—"))}${td(num(o.largura, 1), 1)}${td(num(o.comprimento, 1) + (o.comprimento_estimado ? "*" : ""), 1)}</tr>`),
+      { fonte: "inventário de campo (2026) e relação de meios de transposição (2024). *Comprimento convertido da unidade original do cadastro." })
+      : `<div class="vazio">${e.oae_2011.declarado ? `O levantamento de 2011 declara ${e.oae_2011.declarado} ponte${e.oae_2011.declarado > 1 ? "s" : ""} nesta rodovia, sem localização por quilômetro.` : "Não há obra de arte especial inventariada nesta rodovia."}</div>`}
+    ${e.oae_2011.registros.length ? `<h3>Estruturas registradas em 2011</h3>` + tabela([{ t: "km", n: 1 }, { t: "Registro de campo" }],
+      e.oae_2011.registros.map(x => `<tr>${td(num(x.km, 1), 1)}${td(esc(x.texto))}</tr>`), { fonte: "Plano Rodoviário do Estado do Amazonas (2011)." }) : ""}
+    ${e.oae_2011.descricoes.length && !e.oae.length ? `<ul style="margin:.6rem 0 0 1.1rem;font-size:.85rem;line-height:1.6">${e.oae_2011.descricoes.map(s => `<li>${esc(s)}</li>`).join("")}</ul><div class="fonte">Fonte: plantas de situação de 2011.</div>` : ""}
   </section>`;
   if (!e.tem_tracado) return;
   const map = novoMapa("mapaP");
@@ -482,7 +509,7 @@ async function perfilEstadual(cod) {
   const cods = new Set(e.ramais.map(r => r.c));
   const cam = {
     ram: L.geoJSON({ type: "FeatureCollection", features: gRam.features.filter(f => cods.has(`${f.properties.codigo}${f.properties.numero}`)) }, { style: { color: "#FF8FC4", weight: 2.2 }, onEachFeature: (f, l) => l.bindPopup(() => popRamal(f.properties)) }),
-    oae: L.layerGroup(e.oae.filter(o => o.latitude).map(o => L.circleMarker([o.latitude, o.longitude], { radius: 6, color: "#0B1B2B", weight: 2, fillColor: "#fff", fillOpacity: 1 }).bindPopup(`<div class="pop-t">${esc(o.tipo)} · km ${num(o.km, 1)}</div><div>${esc(o.nome)}</div><div class="pop-l">${esc(o.curso || "")} ${o.comprimento ? "· " + num(o.comprimento, 1) + " m" : ""}</div>`))),
+    oae: L.layerGroup(e.oae.filter(o => o.lat).map(o => L.circleMarker([o.lat, o.lon], { radius: 6, color: "#0B1B2B", weight: 2, fillColor: "#fff", fillOpacity: 1 }).bindPopup(`<div class="pop-t">${esc(o.tipo)} · km ${num(o.km, 1)}</div><div>${esc(tit(o.nome || ""))}</div><div class="pop-l">${esc(o.curso || "")} ${o.comprimento ? "· " + num(o.comprimento, 1) + " m" : ""}</div>`))),
   };
   if (iri) { const segs = (await carrega("dados/iri.json"))[cod] || []; cam.iri = L.layerGroup(segs.map(s => L.polyline([[s[0], s[1]], [s[2], s[3]]], { color: corIri(s[5]), weight: 8, opacity: .95 }).bindPopup(`IRI ${s[4] == null ? "sem medição" : num(s[4], 1) + " m/km"} · ${NIVEIS[Math.min(s[5], 4)][0]}`))); }
   document.querySelectorAll("#camP input").forEach(i => { const f = () => i.checked ? cam[i.dataset.c]?.addTo(map) : cam[i.dataset.c]?.remove(); i.addEventListener("change", f); f(); });
@@ -542,8 +569,8 @@ async function ramais(chave) {
   $("#app").innerHTML = `<section class="hero entra">
       <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
       <h1>Ramais e estradas vicinais</h1>
-      <p>${NF.format(todos.length)} ramais cadastrados em ${muns.length} municípios, somando ${num(km)} km. São eles que levam a produção rural até as rodovias e as rodovias até as comunidades.</p></section>
-    <div class="nums"><div class="num"><b>${NF.format(todos.length)}</b><span>ramais no cadastro</span></div><div class="num"><b>${num(km)} km</b><span>de extensão somada</span></div>
+      <p>${NF.format(D.meta.ramais_cadastrados)} ramais cadastrados em ${muns.length} municípios, somando ${num(D.meta.ramais_km)} km. São eles que levam a produção rural até as rodovias e as rodovias até as comunidades. No mapa aparecem os ${NF.format(todos.length)} que já têm traçado levantado.</p></section>
+    <div class="nums"><div class="num"><b>${NF.format(D.meta.ramais_cadastrados)}</b><span>ramais no cadastro</span></div><div class="num"><b>${num(D.meta.ramais_km)} km</b><span>de extensão somada</span></div>
       <div class="num"><b>${muns.length}</b><span>municípios com ramais</span></div><div class="num"><b>${num(todos.filter(r => /AM-/.test(r.rodovia_referencia || "")).length)}</b><span>com acesso por rodovia estadual</span></div></div>
     <section class="painel">
       <div class="grade-mapa">
@@ -592,6 +619,59 @@ async function ramais(chave) {
   grafico("gMun", { type: "bar", data: { labels: mun.map(x => x[0]), datasets: [{ data: mun.map(x => x[1]), backgroundColor: "#F5A623", borderRadius: 4 }] }, options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { display: false } } } } });
 }
 
+/* ───────── ESTADUALIZAÇÃO ───────── */
+async function estadualizacao() {
+  const E = await carrega("dados/estadualizacao.json");
+  const conc = E.processos.filter(p => p.grupo === "concluida"), cand = E.processos.filter(p => p.grupo === "candidata");
+  const kmC = conc.reduce((s, p) => s + (p.extensao_declarada || 0), 0), kmD = cand.reduce((s, p) => s + (p.extensao_declarada || 0), 0);
+  const muns = [...new Set(cand.flatMap(p => p.municipio.replace(/ e /g, ",").split(",").map(m => m.trim())))].sort();
+  $("#app").innerHTML = `<section class="hero entra">
+      <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+      <h1>Estadualização de estradas vicinais</h1>
+      <p>Quando uma estrada municipal passa a ligar sedes, portos ou rodovias, o Estado pode assumi-la. A Lei n.º 5.692, de 17 de novembro de 2021, incorporou ${conc.length} estradas ao Sistema Rodoviário Estadual. Outros ${cand.length} trechos estão em estudo.</p>
+      <div class="acoes"><a class="btn btn-am" href="documentos/Dossie_Estadualizacao_Rodovias.pdf" target="_blank" rel="noopener">${icone("baixa")}Dossiê de estadualização (PDF)</a><a class="btn btn-cl" href="documentos/Lei_5692_2021_Estadualizacao.pdf" target="_blank" rel="noopener">${icone("doc")}Lei n.º 5.692/2021</a></div>
+    </section>
+    <div class="nums">
+      <div class="num"><b>${conc.length}</b><span>rodovias criadas em 2021</span></div>
+      <div class="num"><b>${num(kmC, 1)} km</b><span>incorporados pela lei</span></div>
+      <div class="num"><b>${cand.length}</b><span>trechos em estudo</span></div>
+      <div class="num"><b>${num(kmD, 1)} km</b><span>em análise, em ${muns.length} municípios</span></div>
+    </div>
+    <section class="painel">
+      <h2>Onde estão os trechos</h2>
+      <p class="nota">Em verde, o que a lei de 2021 incorporou. Em amarelo, os trechos em estudo. Clique para ver os dados de cada um.</p>
+      <div id="mapaE" class="mapa"></div>
+      <div class="legenda"><span><s style="border-color:#4ADE80"></s>Estadualizada em 2021</span><span><s style="border-color:#FFD400"></s>Trecho em estudo</span></div>
+    </section>
+    <section class="painel"><h2>Estradas estadualizadas em 2021</h2>
+      ${tabela([{ t: "Código" }, { t: "Trecho" }, { t: "Município" }, { t: "Ext. declarada (km)", n: 1 }, { t: "Ext. medida (km)", n: 1 }, { t: "Lei municipal" }],
+        conc.map(p => `<tr class="clic" onclick="location.hash='#estaduais/${p.codigo}'">${td(`<b>${p.codigo}</b>`)}${td(esc(p.trecho))}${td(esc(p.municipio))}${td(num(p.extensao_declarada, 2), 1)}${td(num(p.extensao_medida, 2), 1)}${td(esc(p.lei_municipal || "—"))}</tr>`),
+        { fonte: "Lei estadual n.º 5.692/2021; medição sobre o eixo dos processos." })}</section>
+    <section class="painel"><h2>Trechos em estudo</h2>
+      ${tabela([{ t: "Código proposto" }, { t: "Trecho" }, { t: "Município" }, { t: "Ext. (km)", n: 1 }, { t: "Revestimento" }, { t: "Situação" }],
+        cand.map(p => `<tr>${td(`<b>${p.codigo}</b>`)}${td(esc(p.trecho))}${td(esc(p.municipio))}${td(num(p.extensao_declarada, 2), 1)}${td(esc(p.pavimento || "—"))}${td(esc(p.situacao || "—"))}</tr>`),
+        { fonte: "cadastro dos processos de estadualização (2026)." })}</section>
+    <div class="grade2">
+      <section class="painel texto"><h2>Como funciona o trâmite</h2><ol style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.passos.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ol></section>
+      <section class="painel texto"><h2>Critérios de aceitação</h2><ul style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.criterios_aceitacao.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ul>
+        <h2 style="margin-top:1.2rem">Documentos exigidos do município</h2><ul style="padding-left:1.1rem;font-size:.88rem;line-height:1.65">${E.documentos.map(s => `<li style="margin:.3rem 0">${esc(s)}</li>`).join("")}</ul></section>
+    </div>
+    <section class="painel"><h2>Estradas municipais sobre rodovias estaduais</h2>
+      <p class="nota">Trechos apresentados como candidatos que já correm sobre o eixo de uma rodovia estadual cadastrada.</p>
+      ${tabela([{ t: "Município" }, { t: "Trecho" }, { t: "Rodovia" }, { t: "De" }, { t: "Até" }, { t: "Ext. (km)", n: 1 }, { t: "Sobreposta (km)", n: 1 }],
+        E.sobrepostas.map(s => `<tr>${td(esc(s.municipio))}${td(esc(s.trecho))}${td(`<a href="#estaduais/${s.rodovia}">${s.rodovia}</a>`)}${td(esc(s.de))}${td(esc(s.ate))}${td(num(s.ext_total, 2), 1)}${td(num(s.ext_sobreposta, 2), 1)}</tr>`),
+        { fonte: "cadastro dos processos de estadualização (2026)." })}</section>`;
+  const map = novoMapa("mapaE");
+  const gj = await carrega("dados/geo/estadualizacao.geojson");
+  const cor = g => g === "concluida" ? "#4ADE80" : "#FFD400";
+  const camada = L.geoJSON(gj, { style: f => ({ color: cor(f.properties.grupo), weight: 5, opacity: .95 }),
+    onEachFeature: (f, l) => { const p = f.properties;
+      l.bindPopup(`<div class="pop-t">${esc(p.codigo)} · ${esc(p.trecho)}</div><div class="pop-l">${esc(p.municipio)}</div><div>${num(p.km, 2)} km medidos${p.grupo === "concluida" ? " · incorporada em 2021" : " · em estudo"}</div>${p.grupo === "concluida" ? `<a class="pop-a" href="#estaduais/${p.codigo}">Abrir perfil da rodovia</a>` : ""}`); } });
+  L.geoJSON(gj, { style: { color: "#0B1B2B", weight: 8, opacity: .55 }, interactive: false }).addTo(map);
+  camada.addTo(map);
+  map.fitBounds(camada.getBounds(), { padding: [30, 30] });
+}
+
 /* ───────── MÉTODO ───────── */
 function metodo() {
   const p = D.meta.parametros_trafego, est = D.estaduais.filter(e => e.trafego);
@@ -619,8 +699,11 @@ function documentos() {
     "Levantamento de irregularidade longitudinal com RoadLab Pro, out.–dez. 2024.", "Cadastro de ramais e estradas vicinais do Amazonas, 2026.", "Esri World Imagery (Maxar, Earthstar Geographics)."];
   $("#app").innerHTML = `<section class="hero entra"><h1>Dossiê e fontes</h1><p>O perfil completo de cada rodovia, com mapas sobre satélite, tabelas e referências, está reunido em um único documento técnico no padrão ABNT.</p></section>
   <section class="painel">
-    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Rodovias do Amazonas — dossiê técnico (PDF)</b><span>Perfil técnico, econômico e social das rodovias estaduais e federais · leitura e impressão</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
-    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.docx">${icone("doc")}<div><b>Rodovias do Amazonas — dossiê técnico (DOCX)</b><span>Versão editável</span></div><span class="btn btn-ln">${icone("baixa")}DOCX</span></a>
+    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Rodovias do Amazonas: dossiê técnico</b><span>Perfil de cada rodovia estadual e federal, com mapas, tráfego, condição do pavimento, ramais e obras de arte</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Resumo_Referencia_Rodovias.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Resumo de referência</b><span>Os números da malha em poucas páginas, para consulta rápida</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Dossie_Estadualizacao_Rodovias.pdf" target="_blank" rel="noopener">${icone("doc")}<div><b>Estadualização de estradas vicinais</b><span>Trâmite, rodovias incorporadas em 2021 e trechos em estudo</span></div><span class="btn btn-az">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Lei_5692_2021_Estadualizacao.pdf" target="_blank" rel="noopener">${icone("lei")}<div><b>Lei estadual n.º 5.692, de 17 de novembro de 2021</b><span>Autoriza a estadualização das estradas vicinais relacionadas no texto</span></div><span class="btn btn-ln">${icone("baixa")}PDF</span></a>
+    <a class="doc" href="documentos/Dossie_Rodovias_Amazonas.docx">${icone("doc")}<div><b>Versões editáveis</b><span>Dossiê técnico em DOCX; o resumo e o dossiê de estadualização também estão disponíveis nesse formato</span></div><span class="btn btn-ln">${icone("baixa")}DOCX</span></a>
   </section>
   <section class="painel texto"><h2>Fontes</h2><ul style="padding-left:1.1rem">${fontes.map(f => `<li style="margin:.35rem 0;font-size:.9rem;line-height:1.55;max-width:80ch">${esc(f)}</li>`).join("")}</ul>
     <p class="fonte">Dados consolidados em ${esc(D.meta.gerado.split("-").reverse().join("/"))}.</p></section>`;
@@ -641,6 +724,7 @@ async function rota() {
       await (r === "estaduais" ? perfilEstadual(cod) : perfilFederal(cod));
       if (arg) document.getElementById("perfil").scrollIntoView({ behavior: "smooth", block: "start" });
     } else if (r === "ramais") await ramais(arg);
+    else if (r === "estadualizacao") await estadualizacao();
     else if (r === "metodo") metodo();
     else if (r === "documentos") documentos();
     else { await panorama(); }
@@ -657,7 +741,8 @@ window.addEventListener("hashchange", rota);
 carrega("dados/plataforma.json").then(async d => {
   D = d;
   $("#c-est").textContent = D.estaduais.length; $("#c-fed").textContent = D.federais.length;
-  carrega("dados/geo/ramais.geojson").then(g => $("#c-ram").textContent = NF.format(g.features.length));
+  $("#c-ram").textContent = NF.format(D.meta.ramais_cadastrados);
+  carrega("dados/estadualizacao.json").then(e => $("#c-est-lei").textContent = e.processos.length);
   await rota();
 }).catch(err => { $("#app").innerHTML = `<div class="vazio">Falha ao carregar os dados (${esc(err.message)}).</div>`; });
 </script>
