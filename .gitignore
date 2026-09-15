@@ -7,3 +7,4 @@ saida/
 .claude/
 __pycache__/
 *.pyc
+_texto/
