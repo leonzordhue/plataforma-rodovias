@@ -455,6 +455,7 @@ async function panorama() {
       <label class="camada"><input type="checkbox" data-c="ram">Ramais</label>
       <label class="camada"><input type="checkbox" data-c="vmda">Tráfego federal (VMDA)</label>
       <label class="camada"><input type="checkbox" data-c="iri">Condição do pavimento (IRI 2024)</label>
+      <label class="camada"><input type="checkbox" data-c="mun">Divisas municipais</label>
     </div>
     <div id="mapaGeral" class="mapa"></div>
     <div class="legenda" id="leg"></div>
@@ -481,6 +482,7 @@ async function panorama() {
     if (on && !grupos[c]) {
       if (c === "ram") grupos.ram = L.geoJSON(await carrega("dados/geo/ramais.geojson"), { style: { color: "#FF8FC4", weight: 1.6, opacity: .95 }, onEachFeature: (f, l) => l.bindPopup(() => popRamal(f.properties)) });
       if (c === "vmda") grupos.vmda = L.geoJSON(await carrega("dados/geo/vmda_pnct.geojson"), { style: f => ({ color: corVmda(f.properties.vmda), weight: 7, opacity: .9 }), onEachFeature: (f, l) => l.bindPopup(`<div class="pop-t">${esc(f.properties.br)}</div><div>VMDA modelado: <b>${num(f.properties.vmda)}</b> veíc./dia</div><div class="pop-l">DNIT, PNCT 2023</div>`) });
+      if (c === "mun") grupos.mun = camadaMunicipios();
       if (c === "iri") { const iri = await carrega("dados/iri.json"); grupos.iri = L.layerGroup(Object.entries(iri).flatMap(([cod, segs]) => segs.map(s => L.polyline([[s[0], s[1]], [s[2], s[3]]], { color: corIri(s[5]), weight: 6, opacity: .95 }).bindPopup(`<div class="pop-t">${cod}</div><div>IRI ${s[4] == null ? "sem medição" : num(s[4], 1) + " m/km"} · ${NIVEIS[Math.min(s[5], 4)][0]}</div>`)))); }
     }
     if (grupos[c]) on ? grupos[c].addTo(map) : grupos[c].remove();
@@ -492,6 +494,7 @@ async function panorama() {
     if (ativos.includes("est")) h += ["DUP", "PAV", "IMP", "LEN", "TRV", "PLA"].map(k => `<span><s style="border-color:${k === "PLA" ? "#9AA5B1" : SIT[k][0]}${k === "PLA" ? ";border-top-style:dashed" : ""}"></s>Estadual ${SIT[k][1].toLowerCase()}</span>`).join("");
     if (ativos.includes("fed")) h += `<span><s style="border-color:#FF5A5F"></s>Federal</span><span><s style="border-color:#FF5A5F;border-top-style:dashed"></s>Federal planejada</span>`;
     if (ativos.includes("ram")) h += `<span><s style="border-color:#FF8FC4"></s>Ramal</span>`;
+    if (ativos.includes("mun")) h += `<span><s style="border-color:#FFE9A8;border-top-style:dashed"></s>Divisa municipal</span>`;
     if (ativos.includes("vmda")) h += [["<1.000", "#4CAF50"], ["1.000–1.499", "#F5A623"], ["1.500–1.999", "#E8730C"], ["≥2.000", "#C0392B"]].map(([t, c]) => `<span><s style="border-color:${c}"></s>VMDA ${t}</span>`).join("");
     if (ativos.includes("iri")) h += NIVEIS.map(([t, c]) => `<span><s style="border-color:${c}"></s>${t}</span>`).join("");
     $("#leg").innerHTML = h;
@@ -1001,7 +1004,7 @@ async function moduloRural(alvo) {
 
 function fichaRural(nome, m, map, marcas) {
   const e = m.escoamento || {};
-  const rotas = [["Recomendada", e.melhor], ["Só por estrada", e.rodoviario], ["Só por rio", e.fluvial]].filter(([, r]) => r);
+  const rotas = [["Carga", e.carga], ["Passageiro", e.melhor], ["Só por estrada", e.rodoviario], ["Só por rio", e.fluvial]].filter(([, r]) => r);
   const detalhe = m.detalhe || {};
   const tabelaGrupo = (grupo, titulo) => {
     const temas = Object.entries(detalhe[grupo] || {});
@@ -1025,8 +1028,9 @@ function fichaRural(nome, m, map, marcas) {
       <div class="num"><b>${num(m.produtores)}</b><span>produtores assistidos</span></div>
     </div>
     <h3>Como a produção chega a Manaus</h3>
-    ${cadeiaHtml(e.melhor)}
-    <p class="nota">${e.melhor ? `Rota recomendada: ${num(e.melhor.km)} km e ${tempoTexto(e.melhor.h)} até Manaus. A sede fica a ${num(e.reta_km)} km da capital em linha reta.` : "Rota não calculada."}</p>
+    ${cadeiaHtml(e.carga || e.melhor)}
+    <p class="nota">${(e.carga || e.melhor) ? `Rota da carga: ${num((e.carga || e.melhor).km)} km e ${tempoTexto((e.carga || e.melhor).h)} até Manaus, só por superfície. A sede fica a ${num(e.reta_km)} km da capital em linha reta.` : "Rota não calculada."}
+    ${e.melhor && e.carga && Math.abs(e.melhor.h - e.carga.h) > 0.2 ? ` O passageiro chega em ${tempoTexto(e.melhor.h)}${e.melhor.pernas.some(p => p.m === "aereo") ? ", com trecho de avião" : ""}.` : ""}</p>
     ${rotas.length > 1 ? tabela([{ t: "Rota" }, { t: "Modais" }, { t: "km", n: 1 }, { t: "Tempo", n: 1 }],
       rotas.map(([r, rota]) => `<tr>${td(r)}${td([...new Set(rota.pernas.map(p => MODAL_NOME[p.m] || p.m))].join(" → "))}${td(num(rota.km), 1)}${td(tempoTexto(rota.h), 1)}</tr>`),
       { fonte: "cálculo de rotas sobre a malha viária, as hidrovias e os pontos de transbordo." }) : ""}
