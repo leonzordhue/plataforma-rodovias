@@ -948,7 +948,8 @@ async function moduloRural(alvo) {
   <div class="nums entra">
     <div class="num"><b>${num(soma("area_plantada_ha"))} ha</b><span>de área plantada estimada no estado</span></div>
     <div class="num"><b>${num(soma("producao_vegetal_t"))} t</b><span>de produção vegetal estimada</span></div>
-    <div class="num"><b>${num(soma("rebanho_cabecas"))}</b><span>cabeças no rebanho estimado</span></div>
+    <div class="num"><b>${num(soma("rebanho_bovino"))}</b><span>cabeças de gado no rebanho estimado</span></div>
+    <div class="num"><b>${num(soma("aves"))}</b><span>aves criadas</span></div>
     <div class="num"><b>${num(soma("agroindustrias"))}</b><span>agroindústrias registradas</span></div>
     <div class="num"><b>${num(soma("produtores"))}</b><span>produtores atendidos por assistência técnica</span></div>
   </div>
@@ -1017,7 +1018,8 @@ function fichaRural(nome, m, map, marcas) {
     <div class="nums">
       <div class="num"><b>${num(m.producao_vegetal_t)} t</b><span>produção vegetal estimada</span></div>
       <div class="num"><b>${num(m.area_plantada_ha)} ha</b><span>área plantada estimada</span></div>
-      <div class="num"><b>${num(m.rebanho_cabecas)}</b><span>cabeças de rebanho</span></div>
+      <div class="num"><b>${num(m.rebanho_bovino)}</b><span>cabeças de gado</span></div>
+      <div class="num"><b>${num(m.aves)}</b><span>aves</span></div>
       <div class="num"><b>${num(m.peixes_estocados)}</b><span>peixes estocados</span></div>
       <div class="num"><b>${num(m.agroindustrias)}</b><span>agroindústrias</span></div>
       <div class="num"><b>${num(m.produtores)}</b><span>produtores assistidos</span></div>
