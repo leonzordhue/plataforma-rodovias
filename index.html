@@ -107,6 +107,17 @@ main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
 .leaflet-tooltip.med-rot::before{display:none}
 .leaflet-tooltip.mun-rot{font-family:var(--cond);font-weight:700;font-size:.78rem;border:0;box-shadow:0 4px 12px rgba(11,27,43,.2)}
 .mapa-toque{position:absolute;inset:0;z-index:450;display:flex;align-items:center;justify-content:center;background:rgba(11,27,43,.28);cursor:pointer}
+.rural-busca{display:flex;gap:.6rem;align-items:center;margin:.2rem 0 .9rem}
+.rural-lista{max-height:430px;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem;padding-right:.3rem}
+.rural-item{display:flex;justify-content:space-between;gap:.6rem;align-items:baseline;border:1px solid var(--borda);border-radius:9px;padding:.5rem .7rem;background:#fff;cursor:pointer;text-align:left;font-size:.82rem}
+.rural-item:hover{border-color:var(--azul-borda);background:var(--azul-claro)}
+.rural-item.ativo{border-color:var(--azul);background:var(--azul-claro);box-shadow:inset 3px 0 0 var(--azul)}
+.rural-item b{font-family:var(--cond);font-size:.95rem;letter-spacing:.02em}
+.rural-item span{color:var(--aux);font-size:.74rem;white-space:nowrap}
+.rural-cadeia{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:.5rem 0 .2rem}
+.rural-passo{display:inline-flex;align-items:center;gap:.35rem;background:var(--azul-claro);border:1px solid var(--azul-borda);border-radius:99px;padding:.22rem .6rem;font-size:.76rem;color:var(--azul);font-weight:600}
+.rural-passo i{font-style:normal;opacity:.7}
+.rural-seta{color:var(--aux);font-size:.8rem}
 .mapa-toque span{background:#0B1B2B;color:#fff;font-family:var(--cond);font-weight:700;font-size:.85rem;letter-spacing:.04em;padding:.45em .9em;border-radius:99px}
 .camadas{display:flex;flex-wrap:wrap;gap:.45rem;margin:.1rem 0 .8rem}
 .camada{display:inline-flex;align-items:center;gap:.45rem;border:1.5px solid var(--borda);background:#fff;border-radius:99px;padding:.36em .85em;font-size:.8rem;font-weight:600;color:var(--med);cursor:pointer;user-select:none;transition:all .15s}
@@ -235,6 +246,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-campo" viewBox="0 0 24 24"><path d="M12 21v-7m0 0c0-3.3-2.7-6-6-6H4v2c0 3.3 2.7 6 6 6h2zm0 0c0-3.9 3.1-7 7-7h1v1c0 3.9-3.1 7-7 7h-1z"/></symbol>
   <symbol id="i-aviao" viewBox="0 0 24 24"><path d="M10.5 3.5c0-.9.7-1.5 1.5-1.5s1.5.6 1.5 1.5V9l7 4v2l-7-2v4.5l2.5 2V21L12 20l-4 1v-1.5l2.5-2V13l-7 2v-2l7-4z"/></symbol>
   <symbol id="i-pista" viewBox="0 0 24 24"><path d="M9 2 5 22M15 2l4 20M12 4v3M12 11v3M12 18v2"/></symbol>
   <symbol id="i-lei" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M7 7l-3 6a3 3 0 0 0 6 0zM17 7l-3 6a3 3 0 0 0 6 0z"/></symbol>
@@ -254,6 +266,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <a href="#estadualizacao" data-r="estadualizacao"><svg class="ic"><use href="#i-lei"/></svg>Estadualização<span class="cont" id="c-est-lei"></span></a>
     <div class="nav-grupo">Transporte aéreo</div>
     <a href="#aerodromos" data-r="aerodromos"><svg class="ic"><use href="#i-aviao"/></svg>Aeródromos<span class="cont" id="c-aer"></span></a>
+    <div class="nav-grupo">Economia rural</div>
+    <a href="#rural" data-r="rural"><svg class="ic"><use href="#i-campo"/></svg>Produção e escoamento<span class="cont" id="c-rural"></span></a>
   </nav>
   <div class="sidebar-rodape">Dados de 2011 a 2026 reunidos de fontes públicas e levantamentos técnicos. Imagem de satélite: Esri World Imagery.</div>
 </aside>
@@ -905,6 +919,141 @@ async function aerodromos(id) {
 }
 
 /* ───────── roteador ───────── */
+/* ───────── ECONOMIA RURAL ───────── */
+const MODAL_ICONE = { rodovia: "🛣", ramal: "🚜", rio: "⚓", balsa: "⛴", aereo: "✈", transbordo: "⇄", acesso: "•", "acesso fluvial": "•" };
+const MODAL_NOME = { rodovia: "rodovia", ramal: "ramal", rio: "rio", balsa: "balsa", aereo: "voo", transbordo: "transbordo", acesso: "acesso local", "acesso fluvial": "rio menor" };
+
+function cadeiaHtml(rota) {
+  if (!rota) return `<div class="vazio">Rota não calculada.</div>`;
+  const passos = rota.pernas.map(p => `<span class="rural-passo"><i>${MODAL_ICONE[p.m] || "•"}</i>${MODAL_NOME[p.m] || p.m} ${num(p.km, 0)} km</span>`);
+  return `<div class="rural-cadeia">${passos.join('<span class="rural-seta">→</span>')}</div>`;
+}
+
+function tempoTexto(h) {
+  return h < 24 ? `${num(h, 1)} h` : `${num(h / 24, 1)} dias`;
+}
+
+async function moduloRural(alvo) {
+  const R = await carrega("dados/rural.json");
+  const lista = Object.entries(R.municipios).sort((a, b) => b[1].producao_vegetal_t - a[1].producao_vegetal_t);
+  const soma = campo => lista.reduce((s, [, m]) => s + (m[campo] || 0), 0);
+  const ativo = alvo && R.municipios[decodeURIComponent(alvo)] ? decodeURIComponent(alvo) : lista[0][0];
+
+  $("#app").innerHTML = `
+  <section class="hero entra">
+    <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+    <h1>Produção rural e escoamento</h1>
+    <p>O que cada município produz e por onde essa produção sai até Manaus. Área plantada, produção estimada, rebanho, agroindústria e a rota de escoamento com tempo de viagem, para os ${lista.length} municípios do estado.</p>
+  </section>
+  <div class="nums entra">
+    <div class="num"><b>${num(soma("area_plantada_ha"))} ha</b><span>de área plantada estimada no estado</span></div>
+    <div class="num"><b>${num(soma("producao_vegetal_t"))} t</b><span>de produção vegetal estimada</span></div>
+    <div class="num"><b>${num(soma("rebanho_cabecas"))}</b><span>cabeças no rebanho estimado</span></div>
+    <div class="num"><b>${num(soma("agroindustrias"))}</b><span>agroindústrias registradas</span></div>
+    <div class="num"><b>${num(soma("produtores"))}</b><span>produtores atendidos por assistência técnica</span></div>
+  </div>
+  <section class="painel entra">
+    <h2>Mapa da produção</h2>
+    <p class="nota">O tamanho do círculo acompanha a produção vegetal estimada. Clique no município para abrir a ficha, ou use a busca.</p>
+    <div class="grade-mapa">
+      <div>
+        <div class="rural-busca"><div class="busca" style="flex:1">${icone("busca")}<input id="buscaRural" type="search" placeholder="Buscar município" autocomplete="off" aria-label="Buscar município"></div></div>
+        <div class="rural-lista" id="listaRural"></div>
+      </div>
+      <div id="mapaRural" class="mapa medio"></div>
+    </div>
+  </section>
+  <div id="fichaRural"></div>
+  <section class="painel"><h2>Produção vegetal por município</h2><p class="nota">Produção estimada em toneladas, do maior para o menor.</p><div class="graf alto"><canvas id="gRuralRank"></canvas></div></section>`;
+
+  const map = novoMapa("mapaRural", { center: [-4.2, -62.5], zoom: 5 });
+  const maxProd = Math.max(...lista.map(([, m]) => m.producao_vegetal_t || 0)) || 1;
+  const marcas = {};
+  lista.forEach(([nome, m]) => {
+    const e = m.escoamento;
+    if (!e || e.lat == null) return;
+    const raio = 5 + 16 * Math.sqrt((m.producao_vegetal_t || 0) / maxProd);
+    marcas[nome] = L.circleMarker([e.lat, e.lon], { radius: raio, color: "#14532D", weight: 1.4, fillColor: "#4ADE80", fillOpacity: .72 })
+      .addTo(map)
+      .bindTooltip(`<b>${esc(nome)}</b><br>${num(m.producao_vegetal_t)} t`, { direction: "top" })
+      .on("click", () => { location.hash = `#rural/${encodeURIComponent(nome)}`; });
+  });
+
+  const desenhaLista = filtro => {
+    const f = (filtro || "").toLowerCase();
+    $("#listaRural").innerHTML = lista.filter(([n]) => n.toLowerCase().includes(f))
+      .map(([n, m]) => `<button class="rural-item ${n === ativo ? "ativo" : ""}" data-m="${esc(n)}"><b>${esc(n)}</b><span>${num(m.producao_vegetal_t)} t · ${num(m.area_plantada_ha)} ha</span></button>`).join("")
+      || `<div class="vazio">Nenhum município com esse nome.</div>`;
+    document.querySelectorAll("#listaRural .rural-item").forEach(b => b.addEventListener("click", () => { location.hash = `#rural/${encodeURIComponent(b.dataset.m)}`; }));
+  };
+  desenhaLista("");
+  $("#buscaRural").addEventListener("input", e => desenhaLista(e.target.value));
+
+  fichaRural(ativo, R.municipios[ativo], map, marcas);
+
+  grafico("gRuralRank", {
+    type: "bar",
+    data: { labels: lista.map(([n]) => n), datasets: [{ label: "Produção vegetal (t)", data: lista.map(([, m]) => m.producao_vegetal_t), backgroundColor: "#2D8540", borderRadius: 3 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${num(c.parsed.x)} t` } } }, scales: { x: { ticks: { callback: v => num(v) } }, y: { ticks: { font: { size: 9 } }, grid: { display: false } } } },
+  });
+}
+
+function fichaRural(nome, m, map, marcas) {
+  const e = m.escoamento || {};
+  const rotas = [["Recomendada", e.melhor], ["Só por estrada", e.rodoviario], ["Só por rio", e.fluvial]].filter(([, r]) => r);
+  const detalhe = m.detalhe || {};
+  const tabelaGrupo = (grupo, titulo) => {
+    const temas = Object.entries(detalhe[grupo] || {});
+    if (!temas.length) return "";
+    const cols = [...new Set(temas.flatMap(([, c]) => Object.keys(c)))].filter(c => c.toUpperCase().startsWith("ESTIMATIVA") || /produção|área|nº|n\.º/i.test(c)).slice(0, 5);
+    return `<h3>${titulo}</h3>` + tabela([{ t: "Item" }, ...cols.map(c => ({ t: c.replace(/^ESTIMATIVA DO MUNICÍPIO · /, ""), n: 1 }))],
+      temas.sort((a, b) => a[0].localeCompare(b[0], "pt-BR")).map(([t, c]) => `<tr>${td(esc(tit(t)))}${cols.map(k => td(c[k] == null ? "—" : num(c[k], 2), 1)).join("")}</tr>`),
+      { fonte: "relatório trimestral de acompanhamento da produção rural (2025).", rolo: true });
+  };
+
+  $("#fichaRural").innerHTML = `
+  <section class="painel entra">
+    <h2>${esc(nome)}</h2>
+    <div class="nums">
+      <div class="num"><b>${num(m.producao_vegetal_t)} t</b><span>produção vegetal estimada</span></div>
+      <div class="num"><b>${num(m.area_plantada_ha)} ha</b><span>área plantada estimada</span></div>
+      <div class="num"><b>${num(m.rebanho_cabecas)}</b><span>cabeças de rebanho</span></div>
+      <div class="num"><b>${num(m.peixes_estocados)}</b><span>peixes estocados</span></div>
+      <div class="num"><b>${num(m.agroindustrias)}</b><span>agroindústrias</span></div>
+      <div class="num"><b>${num(m.produtores)}</b><span>produtores assistidos</span></div>
+    </div>
+    <h3>Como a produção chega a Manaus</h3>
+    ${cadeiaHtml(e.melhor)}
+    <p class="nota">${e.melhor ? `Rota recomendada: ${num(e.melhor.km)} km e ${tempoTexto(e.melhor.h)} até Manaus. A sede fica a ${num(e.reta_km)} km da capital em linha reta.` : "Rota não calculada."}</p>
+    ${rotas.length > 1 ? tabela([{ t: "Rota" }, { t: "Modais" }, { t: "km", n: 1 }, { t: "Tempo", n: 1 }],
+      rotas.map(([r, rota]) => `<tr>${td(r)}${td([...new Set(rota.pernas.map(p => MODAL_NOME[p.m] || p.m))].join(" → "))}${td(num(rota.km), 1)}${td(tempoTexto(rota.h), 1)}</tr>`),
+      { fonte: "cálculo de rotas sobre a malha viária, as hidrovias e os pontos de transbordo." }) : ""}
+    <p class="nota">${e.aereo && e.aereo.no_municipio ? `Aeródromo no município: ${esc(e.aereo.aerodromo)} (${esc(e.aereo.oaci || "sem código")}), a ${num(e.aereo.km)} km de Manaus.` : "Sem aeródromo público no município."}
+    ${e.terminais && e.terminais.length ? ` Terminais flutuantes atendem ${e.terminais.length} comunidade${e.terminais.length > 1 ? "s" : ""}.` : ""}</p>
+    <div class="grade2">
+      <div><h3>Principais culturas</h3><div class="graf"><canvas id="gRuralCult"></canvas></div></div>
+      <div><h3>Rebanho por criação</h3><div class="graf"><canvas id="gRuralReb"></canvas></div></div>
+    </div>
+    ${tabelaGrupo("vegetal", "Produção vegetal")}
+    ${tabelaGrupo("animal", "Produção animal")}
+    ${tabelaGrupo("agroindustria", "Agroindústria")}
+    ${tabelaGrupo("florestal", "Produção florestal")}
+  </section>`;
+
+  const cult = (m.top_culturas || []).slice(0, 8);
+  grafico("gRuralCult", { type: "bar", data: { labels: cult.map(c => c.tema), datasets: [{ label: "t", data: cult.map(c => c.valor), backgroundColor: "#2D8540", borderRadius: 3 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${num(c.parsed.x, 1)} t` } } }, scales: { x: { ticks: { callback: v => num(v) } }, y: { grid: { display: false } } } } });
+  const reb = (m.top_rebanho || []).slice(0, 8);
+  grafico("gRuralReb", { type: "bar", data: { labels: reb.map(c => c.tema), datasets: [{ label: "cabeças", data: reb.map(c => c.valor), backgroundColor: "#1A2B5E", borderRadius: 3 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${num(c.parsed.x)} ` } } }, scales: { x: { ticks: { callback: v => num(v) } }, y: { grid: { display: false } } } } });
+
+  if (map && marcas && marcas[nome]) {
+    Object.values(marcas).forEach(mk => mk.setStyle({ color: "#14532D", weight: 1.4 }));
+    marcas[nome].setStyle({ color: "#F5A623", weight: 3 }).bringToFront();
+    map.setView(marcas[nome].getLatLng(), Math.max(map.getZoom(), 6));
+  }
+}
+
 async function rota() {
   const [r, arg] = (location.hash.slice(1) || "panorama").split("/");
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("ativo", a.dataset.r === r));
@@ -921,6 +1070,7 @@ async function rota() {
     } else if (r === "ramais") await ramais(arg);
     else if (r === "estadualizacao") await estadualizacao();
     else if (r === "aerodromos") await aerodromos(arg);
+    else if (r === "rural") await moduloRural(arg);
     else { await panorama(); }
     document.body.dataset.r = r;
     if (r === "aerodromos" && arg) document.getElementById("mapaA").closest(".painel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -939,6 +1089,7 @@ carrega("dados/plataforma.json").then(async d => {
   $("#c-ram").textContent = NF.format(D.meta.ramais_cadastrados);
   carrega("dados/estadualizacao.json").then(e => $("#c-est-lei").textContent = e.processos.length);
   carrega("dados/aerodromos.json").then(a => $("#c-aer").textContent = a.publicos.filter(p => p.situacao !== "Pendente de homologação").length);
+  carrega("dados/rural.json").then(r => $("#c-rural").textContent = Object.keys(r.municipios).length);
   await rota();
 }).catch(err => { $("#app").innerHTML = `<div class="vazio">Falha ao carregar os dados (${esc(err.message)}).</div>`; });
 </script>
