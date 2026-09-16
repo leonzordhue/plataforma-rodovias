@@ -91,9 +91,23 @@ main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
 .graf{position:relative;height:300px}.graf.alto{height:420px}
 
 /* ─── mapa ─── */
-.mapa{height:560px;border-radius:12px;overflow:hidden;background:#0F2233;box-shadow:inset 0 0 0 1px var(--borda)}
-.mapa.medio{height:460px}
-@media(max-width:700px){.mapa,.mapa.medio{height:380px}}
+.mapa{height:clamp(340px,64vh,600px);border-radius:12px;overflow:hidden;background:#0F2233;box-shadow:inset 0 0 0 1px var(--borda);position:relative}
+.mapa.medio{height:clamp(320px,54vh,480px)}
+@media(max-width:700px){.mapa,.mapa.medio{height:min(72vh,440px)}.leaflet-bar a,.med-btn button,.leaflet-control-layers-toggle{width:38px!important;height:38px!important;line-height:38px!important}}
+.leaflet-container.medindo{cursor:crosshair}
+.med-btn button{display:block;width:30px;height:30px;border:0;border-radius:2px;background:#fff;font-size:1.05rem;font-weight:700;color:var(--azul);cursor:pointer;line-height:1}
+.med-btn button:hover{background:var(--azul-claro)}
+.med-cx{display:none;align-items:center;gap:.5rem;background:#fff;border-radius:10px;padding:.45rem .6rem;font-family:var(--font);font-size:.78rem;box-shadow:0 6px 18px rgba(11,27,43,.25)}
+.med-cx.on{display:flex}
+.med-cx b{font-family:var(--cond);font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--aux)}
+.med-cx span{font-weight:700;color:var(--azul)}
+.med-cx button{border:1px solid var(--borda);background:#fff;border-radius:7px;padding:.22rem .5rem;font-size:.72rem;cursor:pointer;color:var(--med)}
+.med-cx button:hover{background:var(--azul-claro);color:var(--azul)}
+.leaflet-tooltip.med-rot{background:#0B1B2B;color:#fff;border:0;border-radius:5px;font-family:var(--cond);font-weight:700;font-size:.72rem;padding:.1em .4em;box-shadow:none}
+.leaflet-tooltip.med-rot::before{display:none}
+.leaflet-tooltip.mun-rot{font-family:var(--cond);font-weight:700;font-size:.78rem;border:0;box-shadow:0 4px 12px rgba(11,27,43,.2)}
+.mapa-toque{position:absolute;inset:0;z-index:450;display:flex;align-items:center;justify-content:center;background:rgba(11,27,43,.28);cursor:pointer}
+.mapa-toque span{background:#0B1B2B;color:#fff;font-family:var(--cond);font-weight:700;font-size:.85rem;letter-spacing:.04em;padding:.45em .9em;border-radius:99px}
 .camadas{display:flex;flex-wrap:wrap;gap:.45rem;margin:.1rem 0 .8rem}
 .camada{display:inline-flex;align-items:center;gap:.45rem;border:1.5px solid var(--borda);background:#fff;border-radius:99px;padding:.36em .85em;font-size:.8rem;font-weight:600;color:var(--med);cursor:pointer;user-select:none;transition:all .15s}
 .camada input{appearance:none;width:12px;height:12px;border-radius:3px;border:1.5px solid var(--azul-borda);display:grid;place-content:center}
@@ -273,13 +287,83 @@ const graficos = [];
 const mapas = [];
 
 /* ───────── mapas ───────── */
+function camadaMunicipios() { // divisas municipais sob demanda: o arquivo só é buscado quando a camada é ligada
+  const g = L.layerGroup();
+  g.on("add", async () => {
+    if (g.getLayers().length) return;
+    L.geoJSON(await carrega("dados/geo/municipios.geojson"), {
+      style: { color: "#FFE9A8", weight: 1.1, opacity: .85, fill: false, dashArray: "6 4" },
+      onEachFeature: (f, l) => l.bindTooltip(esc(f.properties.nome), { sticky: true, className: "mun-rot" }),
+    }).addTo(g);
+  });
+  return g;
+}
+
+function ferramentaMedida(map) { // régua: clique ponto a ponto, distância parcial em cada ponto e total na caixa
+  const pts = [], grupo = L.layerGroup().addTo(map);
+  let ativo = false, caixa = null;
+  const fmt = m => m >= 1000 ? num(m / 1000, m >= 10000 ? 1 : 2) + " km" : num(Math.round(m)) + " m";
+  const total = () => pts.slice(1).reduce((soma, pt, i) => soma + map.distance(pts[i], pt), 0);
+  const desenha = () => {
+    grupo.clearLayers();
+    if (pts.length > 1) {
+      L.polyline(pts, { color: "#0B1B2B", weight: 6, opacity: .45 }).addTo(grupo);
+      L.polyline(pts, { color: "#F5A623", weight: 2.6, dashArray: "8 5" }).addTo(grupo);
+    }
+    pts.forEach((pt, i) => L.circleMarker(pt, { radius: 5, color: "#0B1B2B", weight: 2, fillColor: "#F5A623", fillOpacity: 1 })
+      .bindTooltip(i ? fmt(map.distance(pts[i - 1], pt)) : "início", { permanent: true, direction: "top", className: "med-rot" }).addTo(grupo));
+    if (caixa) caixa.querySelector("[data-v]").textContent = pts.length > 1 ? fmt(total()) : "clique no mapa";
+  };
+  const clique = e => { pts.push(e.latlng); desenha(); };
+  const limpa = () => { pts.length = 0; desenha(); };
+  const liga = on => {
+    ativo = on;
+    caixa.classList.toggle("on", on);
+    L.DomUtil[on ? "addClass" : "removeClass"](map.getContainer(), "medindo");
+    if (on) { map.on("click", clique); desenha(); } else { map.off("click", clique); limpa(); }
+  };
+  const botao = L.control({ position: "topleft" });
+  botao.onAdd = () => {
+    const d = L.DomUtil.create("div", "leaflet-bar med-btn");
+    d.innerHTML = '<button type="button" title="Medir distância" aria-label="Medir distância">&#8596;</button>';
+    L.DomEvent.disableClickPropagation(d);
+    L.DomEvent.on(d, "click", e => { L.DomEvent.stop(e); liga(!ativo); });
+    return d;
+  };
+  botao.addTo(map);
+  const painel = L.control({ position: "bottomleft" });
+  painel.onAdd = () => {
+    caixa = L.DomUtil.create("div", "med-cx");
+    caixa.innerHTML = '<b>Distância</b><span data-v>clique no mapa</span><button type="button" data-l>Limpar</button><button type="button" data-f>Fechar</button>';
+    L.DomEvent.disableClickPropagation(caixa);
+    caixa.querySelector("[data-l]").onclick = limpa;
+    caixa.querySelector("[data-f]").onclick = () => liga(false);
+    return caixa;
+  };
+  painel.addTo(map);
+}
+
+function gateToque(map) { // no celular o mapa só captura o arraste depois de um toque, senão a página não rola
+  if (!L.Browser.mobile) return;
+  map.dragging.disable();
+  const veu = L.DomUtil.create("div", "mapa-toque", map.getContainer());
+  veu.innerHTML = "<span>Toque para usar o mapa</span>";
+  const libera = () => { map.dragging.enable(); veu.remove(); };
+  veu.addEventListener("click", libera);
+  veu.addEventListener("touchstart", libera, { passive: true });
+}
+
 function base(map) {
-  const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri World Imagery · Maxar, Earthstar Geographics" });
-  const rot = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, opacity: .9 });
-  const claro = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap · CARTO" });
+  const tile = (url, extra = {}) => L.tileLayer(url, { maxZoom: 19, detectRetina: true, ...extra });
+  const sat = tile("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Esri World Imagery · Maxar, Earthstar Geographics" });
+  const rot = tile("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { opacity: .9 });
+  const claro = tile("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", attribution: "© OpenStreetMap · CARTO" });
   const satRot = L.layerGroup([sat, rot]).addTo(map);
-  L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro }, null, { position: "topright" }).addTo(map);
+  L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro },
+    { "Divisas municipais": camadaMunicipios() }, { position: "topright" }).addTo(map);
   L.control.scale({ imperial: false }).addTo(map);
+  ferramentaMedida(map);
+  gateToque(map);
 }
 function novoMapa(id, opts = {}) {
   const map = L.map(id, { center: [-4.2, -62.5], zoom: 5, zoomControl: true, preferCanvas: true, ...opts });
@@ -327,6 +411,7 @@ async function panorama() {
   const kmEst = est.reduce((s, e) => s + (e.extensao || 0), 0);
   let kmPav = 0, kmPla = 0;
   est.forEach(e => e.trechos.forEach(t => { if (/Paviment|Duplic/.test(t.situacao)) kmPav += t.extensao || 0; if (/Planej/.test(t.situacao)) kmPla += t.extensao || 0; }));
+  const abertas = est.filter(e => /Paviment|Duplic|Implant|Leito|Travessia/.test(e.situacao || "")).length;
   const kmFed = fed.reduce((s, f) => s + f.extensao, 0);
   const fedPav = fed.reduce((s, f) => s + (f.superficie.Pavimentada || 0) + (f.superficie.Duplicada || 0), 0);
   const ramais = (await carrega("dados/geo/ramais.geojson")).features;
@@ -340,6 +425,7 @@ async function panorama() {
     <div class="acoes"><a class="btn btn-am" href="#estaduais">${icone("estadual")}Consultar uma rodovia</a><a class="btn btn-cl" href="#aerodromos">${icone("aviao")}Ver os aeródromos</a></div>
   </section>
   <div class="nums entra">
+    <div class="num"><b>${abertas} de ${est.length}</b><span>rodovias estaduais com trecho aberto ao tráfego; ${est.length - abertas} existem só como diretriz</span></div>
     <div class="num"><b>${num(kmEst)} km</b><span>de rodovias estaduais cadastradas, ${num(kmPla)} km só planejados</span></div>
     <div class="num"><b>${num(kmPav)} km</b><span>estaduais pavimentados ou duplicados</span></div>
     <div class="num"><b>${num(kmFed)} km</b><span>de rodovias federais no Amazonas, ${num(fedPav)} km pavimentados</span></div>
@@ -355,7 +441,6 @@ async function panorama() {
       <label class="camada"><input type="checkbox" data-c="ram">Ramais</label>
       <label class="camada"><input type="checkbox" data-c="vmda">Tráfego federal (VMDA)</label>
       <label class="camada"><input type="checkbox" data-c="iri">Condição do pavimento (IRI 2024)</label>
-      <label class="camada"><input type="checkbox" data-c="mun">Limites municipais</label>
     </div>
     <div id="mapaGeral" class="mapa"></div>
     <div class="legenda" id="leg"></div>
@@ -368,7 +453,7 @@ async function panorama() {
 
   const map = novoMapa("mapaGeral");
   const grupos = {};
-  const [gEst, gFed, gMun] = await Promise.all(["estaduais", "federais", "municipios"].map(n => carrega(`dados/geo/${n}.geojson`)));
+  const [gEst, gFed] = await Promise.all(["estaduais", "federais"].map(n => carrega(`dados/geo/${n}.geojson`)));
   const porCod = Object.fromEntries(est.map(e => [e.codigo, e]));
   const popEst = f => { const e = porCod[f.properties.rodovia]; const p = f.properties;
     return `<div class="pop-t">${esc(p.rodovia)}</div><div class="pop-l">${esc(p.trecho_inicio)} → ${esc(p.trecho_fim)}</div><div>${esc(p.situacao_descricao || "")} · ${num(p.extensao_cadastro_km || p.extensao_geodesica_km, 1)} km</div>${e && e.trafego ? `<div>VMD ${D.meta.horizonte}: <b>${num(e.trafego.cen.central.vmd)}</b> veíc./dia</div>` : ""}<a class="pop-a" href="#estaduais/${p.rodovia}">Abrir perfil</a>`; };
@@ -377,7 +462,6 @@ async function panorama() {
   const linhaFed = L.geoJSON(gFed, { style: f => ({ color: "#FF5A5F", weight: f.properties.superficie === "PLA" ? 2 : 3.2, dashArray: f.properties.superficie === "PLA" ? "5 6" : null, opacity: .95 }),
     onEachFeature: (f, l) => l.bindPopup(() => `<div class="pop-t">${esc(f.properties.br)}</div><div class="pop-l">${esc(f.properties.inicio)} → ${esc(f.properties.fim)}</div><div>Trecho ${esc(f.properties.snv)} · ${esc(f.properties.superficie)} · ${num(f.properties.extensao, 1)} km</div><a class="pop-a" href="#federais/${f.properties.br}">Abrir perfil</a>`) });
   grupos.fed = L.layerGroup([contorno(linhaFed, 3), linhaFed]);
-  grupos.mun = L.geoJSON(gMun, { style: { color: "#F2E8B0", weight: .8, opacity: .6, fill: false, dashArray: "4 4" }, interactive: false });
   map.fitBounds(linhaFed.getBounds(), { padding: [20, 20] });
   const liga = async (c, on) => {
     if (on && !grupos[c]) {
