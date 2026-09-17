@@ -107,6 +107,13 @@ main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
 .leaflet-tooltip.med-rot::before{display:none}
 .leaflet-tooltip.mun-rot{font-family:var(--cond);font-weight:700;font-size:.78rem;border:0;box-shadow:0 4px 12px rgba(11,27,43,.2)}
 .mapa-toque{position:absolute;inset:0;z-index:450;display:flex;align-items:center;justify-content:center;background:rgba(11,27,43,.28);cursor:pointer}
+.dm-abas{display:flex;gap:.4rem;margin:.2rem 0 1rem;border-bottom:1px solid var(--borda)}
+.dm-abas button{border:0;background:none;padding:.55rem .95rem;font-size:.9rem;font-weight:700;color:var(--txt2);cursor:pointer;border-bottom:3px solid transparent;font-family:inherit}
+.dm-abas button.on{color:var(--azul);border-bottom-color:var(--amarelo)}
+.dm-barra{position:relative;background:var(--azul-claro);border-radius:6px;height:16px;min-width:56px}
+.dm-barra i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#1A2B5E,#4C6BC4);border-radius:6px}
+.dm-barra b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--txt);font-weight:700}
+.dm-aviso{background:#FFF8E6;border:1px solid #F0D48A;border-radius:9px;padding:.55rem .8rem;font-size:.82rem;color:#6B5312;margin:.5rem 0}
 .rk-filtros{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin:.2rem 0 .9rem}
 .rk-filtros select{border:1px solid var(--borda);border-radius:9px;padding:.42rem .6rem;background:#fff;font-size:.82rem}
 .rk-tab th{cursor:pointer;user-select:none;white-space:nowrap}
@@ -256,6 +263,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-demanda" viewBox="0 0 24 24"><path d="M4 4h16v2H4V4zm0 5h16v2H4V9zm0 5h10v2H4v-2zm0 5h10v2H4v-2zm14.5-3.5L22 18l-3.5 3.5V19h-3v-2h3v-2.5z"/></symbol>
   <symbol id="i-ranking" viewBox="0 0 24 24"><path d="M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z"/></symbol>
   <symbol id="i-campo" viewBox="0 0 24 24"><path d="M12 21v-7m0 0c0-3.3-2.7-6-6-6H4v2c0 3.3 2.7 6 6 6h2zm0 0c0-3.9 3.1-7 7-7h1v1c0 3.9-3.1 7-7 7h-1z"/></symbol>
   <symbol id="i-aviao" viewBox="0 0 24 24"><path d="M10.5 3.5c0-.9.7-1.5 1.5-1.5s1.5.6 1.5 1.5V9l7 4v2l-7-2v4.5l2.5 2V21L12 20l-4 1v-1.5l2.5-2V13l-7 2v-2l7-4z"/></symbol>
@@ -280,6 +288,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div class="nav-grupo">Economia rural</div>
     <a href="#rural" data-r="rural"><svg class="ic"><use href="#i-campo"/></svg>Produção e escoamento<span class="cont" id="c-rural"></span></a>
     <a href="#ranking" data-r="ranking"><svg class="ic"><use href="#i-ranking"/></svg>Prioridade de ramais<span class="cont" id="c-rank"></span></a>
+    <div class="nav-grupo">Demanda dos municípios</div>
+    <a href="#demanda" data-r="demanda"><svg class="ic"><use href="#i-demanda"/></svg>Pedidos por município<span class="cont" id="c-dem"></span></a>
   </nav>
   <div class="sidebar-rodape">Dados de 2011 a 2026 reunidos de fontes públicas e levantamentos técnicos. Imagem de satélite: Esri World Imagery.</div>
 </aside>
@@ -934,6 +944,118 @@ async function aerodromos(id) {
 }
 
 /* ───────── roteador ───────── */
+/* ───────── DEMANDA REGISTRADA ───────── */
+let dmTema = "ramal", dmMun = "";
+
+async function moduloDemanda(alvo) {
+  const S = await carrega("dados/solicitacoes.json");
+  const muns = Object.keys(S.municipios).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const soma = t => Object.values(S.municipios).reduce((x, m) => x + m[t].ped, 0);
+  const anos = {};
+  Object.values(S.municipios).forEach(m => ["ramal", "rodovia"].forEach(t =>
+    Object.entries(m[t].ano).forEach(([a, n]) => { anos[a] = anos[a] || { ramal: 0, rodovia: 0 }; anos[a][t] += n; })));
+  const chaves = Object.keys(anos).sort();
+
+  $("#app").innerHTML = `
+  <section class="hero entra">
+    <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+    <h1>Pedidos por município</h1>
+    <p>O que cada município pediu em ${esc(S.periodo)}, separado entre ramal e rodovia. A contagem mostra onde a pressão se repete ano após ano e qual trecho aparece mais vezes.</p>
+  </section>
+  <div class="nums entra">
+    <div class="num"><b>${NF.format(soma("ramal"))}</b><span>pedidos de ramal</span></div>
+    <div class="num"><b>${NF.format(soma("rodovia"))}</b><span>pedidos de rodovia</span></div>
+    <div class="num"><b>${NF.format(S.ramais.length)}</b><span>ramais citados pelo nome</span></div>
+    <div class="num"><b>${NF.format(S.rodovias.length)}</b><span>rodovias citadas pelo código</span></div>
+    <div class="num"><b>${NF.format(muns.length)}</b><span>municípios com pedido</span></div>
+  </div>
+  <section class="painel entra">
+    <h2>Pedidos por ano</h2>
+    <div class="graf"><canvas id="gDem"></canvas></div>
+    <p class="nota">Cada linha do banco vale um pedido. Pedido que cita dois municípios conta uma vez em cada.</p>
+  </section>
+  <section class="painel entra">
+    <div class="dm-abas">
+      <button data-t="ramal" class="on">Ramais</button>
+      <button data-t="rodovia">Rodovias</button>
+    </div>
+    <div id="dmConteudo"></div>
+  </section>
+  <section class="painel entra">
+    <h2>Por município</h2>
+    <div class="rk-filtros">
+      <select id="dmMun"><option value="">Todos os municípios</option>${muns.map(m => `<option>${esc(m)}</option>`).join("")}</select>
+    </div>
+    <div id="dmMunicipios"></div>
+  </section>`;
+
+  grafico("gDem", {
+    type: "bar",
+    data: {
+      labels: chaves,
+      datasets: [
+        { label: "Ramal", data: chaves.map(a => anos[a].ramal), backgroundColor: "#1A2B5E", borderRadius: 4 },
+        { label: "Rodovia", data: chaves.map(a => anos[a].rodovia), backgroundColor: "#F5A623", borderRadius: 4 },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } },
+      scales: { y: { beginAtZero: true, grid: { color: "#EDF1F6" } }, x: { grid: { display: false } } } },
+  });
+
+  const desenhaTema = () => {
+    const el = $("#dmConteudo");
+    if (dmTema === "ramal") {
+      const lista = S.ramais.slice(0, 60);
+      const topo = lista[0] ? lista[0].ped : 1;
+      el.innerHTML = `<h2>Ramais mais pedidos</h2>
+        <p class="nota">Ordem pela quantidade de pedidos que citam o ramal pelo nome, em todo o período.</p>` +
+        tabela([{ t: "#", n: 1 }, { t: "Pedidos", n: 1 }, { t: "Ramal" }, { t: "Município" }, { t: "km", n: 1 },
+                { t: "Revestimento" }, { t: "Acesso" }, { t: "Período" }],
+          lista.map((r, i) => `<tr>${td(i + 1, 1)}
+            ${td(`<div class="dm-barra"><i style="width:${Math.round(r.ped / topo * 100)}%"></i><b>${r.ped}</b></div>`)}
+            ${td(esc(tit(r.nome || r.cod)))}${td(esc(tit(r.mun || "—")))}${td(num(r.km, 1), 1)}
+            ${td(esc(r.rev || "—"))}${td(esc(r.rod || "—"))}${td(r.anos[0] + "–" + r.anos[r.anos.length - 1])}</tr>`),
+          { rolo: true, fonte: "banco de solicitações do período." });
+    } else {
+      const lista = S.rodovias;
+      const topo = lista[0] ? lista[0].ped : 1;
+      const fora = lista.filter(r => !r.cadastrada);
+      el.innerHTML = `<h2>Rodovias mais pedidas</h2>
+        <p class="nota">Ordem pela quantidade de pedidos que citam o código da rodovia.</p>` +
+        (fora.length ? `<div class="dm-aviso">${fora.map(r => esc(r.cod)).join(" e ")} ${fora.length > 1 ? "aparecem" : "aparece"} nos pedidos, mas não ${fora.length > 1 ? "constam" : "consta"} no cadastro rodoviário estadual. A contagem fica registrada como veio do pedido.</div>` : "") +
+        tabela([{ t: "#", n: 1 }, { t: "Pedidos", n: 1 }, { t: "Rodovia" }, { t: "Municípios que pediram" }, { t: "Período" }],
+          lista.map((r, i) => `<tr>${td(i + 1, 1)}
+            ${td(`<div class="dm-barra"><i style="width:${Math.round(r.ped / topo * 100)}%"></i><b>${r.ped}</b></div>`)}
+            ${td(esc(r.cod) + (r.cadastrada ? "" : " <span class=\"chip r\">fora do cadastro</span>"))}
+            ${td(r.muns.map(esc).join(", "))}${td(r.anos[0] + "–" + r.anos[r.anos.length - 1])}</tr>`),
+          { rolo: true, fonte: "banco de solicitações do período." });
+    }
+  };
+  desenhaTema();
+  const abas = [...document.querySelectorAll(".dm-abas button")];
+  abas.forEach(b => b.addEventListener("click", () => {
+    abas.forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); dmTema = b.dataset.t; desenhaTema();
+  }));
+
+  const desenhaMun = () => {
+    const lista = (dmMun ? [dmMun] : muns).map(m => [m, S.municipios[m]]);
+    $("#dmMunicipios").innerHTML = tabela(
+      [{ t: "Município" }, { t: "Pedidos de ramal", n: 1 }, { t: "Ramal mais pedido" },
+       { t: "Pedidos de rodovia", n: 1 }, { t: "Rodovia mais pedida" }],
+      lista.sort((a, b) => (b[1].ramal.ped + b[1].rodovia.ped) - (a[1].ramal.ped + a[1].rodovia.ped))
+        .map(([m, v]) => {
+          const r = v.ramal.top[0], d = v.rodovia.top[0];
+          return `<tr>${td(esc(m))}${td(v.ramal.ped, 1)}
+            ${td(r ? `${esc(tit(r.nome))} <span class="chip">${r.ped}</span>` : "—")}
+            ${td(v.rodovia.ped, 1)}${td(d ? `${esc(d.alvo)} <span class="chip">${d.ped}</span>` : "—")}</tr>`;
+        }),
+      { rolo: true, fonte: "banco de solicitações do período." });
+  };
+  desenhaMun();
+  $("#dmMun").addEventListener("change", e => { dmMun = e.target.value; desenhaMun(); });
+}
+
 /* ───────── PRIORIDADE DE RAMAIS ───────── */
 const RK_CRIT = { pessoas: "Pessoas atendidas", producao: "Produção escoada", rede: "Papel na rede", mercado: "Ligação ao mercado", condicao: "Condição e risco" };
 let rkEstado = { ordem: "pos", inverso: false, municipio: "", revestimento: "", busca: "" };
@@ -1027,8 +1149,8 @@ async function moduloRanking(alvo) {
 }
 
 /* ───────── ECONOMIA RURAL ───────── */
-const MODAL_ICONE = { rodovia: "🛣", ramal: "🚜", rio: "⚓", balsa: "⛴", aereo: "✈", transbordo: "⇄", acesso: "•", "acesso fluvial": "•" };
-const MODAL_NOME = { rodovia: "rodovia", ramal: "ramal", rio: "rio", balsa: "balsa", aereo: "voo", transbordo: "transbordo", acesso: "acesso local", "acesso fluvial": "rio menor" };
+const MODAL_ICONE = { rodovia: "🛣", ramal: "🚜", rio: "⚓", balsa: "⛴", aereo: "✈", transbordo: "⇄", acesso: "•", "acesso fluvial": "•", "acesso aeroporto": "🛫" };
+const MODAL_NOME = { rodovia: "rodovia", ramal: "ramal", rio: "rio", balsa: "balsa", aereo: "voo", transbordo: "transbordo", acesso: "acesso local", "acesso fluvial": "rio menor", "acesso aeroporto": "até o aeroporto" };
 
 function cadeiaHtml(rota) {
   if (!rota) return `<div class="vazio">Rota não calculada.</div>`;
@@ -1182,6 +1304,7 @@ async function rota() {
     else if (r === "aerodromos") await aerodromos(arg);
     else if (r === "rural") await moduloRural(arg);
     else if (r === "ranking") await moduloRanking(arg);
+    else if (r === "demanda") await moduloDemanda(arg);
     else { await panorama(); }
     document.body.dataset.r = r;
     if (r === "aerodromos" && arg) document.getElementById("mapaA").closest(".painel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1202,6 +1325,7 @@ carrega("dados/plataforma.json").then(async d => {
   carrega("dados/aerodromos.json").then(a => $("#c-aer").textContent = a.publicos.filter(p => p.situacao !== "Pendente de homologação").length);
   carrega("dados/rural.json").then(r => $("#c-rural").textContent = Object.keys(r.municipios).length);
   carrega("dados/ranking.json").then(r => $("#c-rank").textContent = r.ramais.length);
+  carrega("dados/solicitacoes.json").then(r => $("#c-dem").textContent = Object.keys(r.municipios).length);
   await rota();
 }).catch(err => { $("#app").innerHTML = `<div class="vazio">Falha ao carregar os dados (${esc(err.message)}).</div>`; });
 </script>
