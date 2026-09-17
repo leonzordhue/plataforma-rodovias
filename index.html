@@ -107,6 +107,14 @@ main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
 .leaflet-tooltip.med-rot::before{display:none}
 .leaflet-tooltip.mun-rot{font-family:var(--cond);font-weight:700;font-size:.78rem;border:0;box-shadow:0 4px 12px rgba(11,27,43,.2)}
 .mapa-toque{position:absolute;inset:0;z-index:450;display:flex;align-items:center;justify-content:center;background:rgba(11,27,43,.28);cursor:pointer}
+.sel-lista{border:1px solid var(--borda);border-radius:10px;margin:.7rem 0;overflow:hidden}
+.sel-topo{display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;background:var(--azul-claro);font-size:.84rem;font-weight:700;color:var(--azul);flex-wrap:wrap}
+.sel-topo button{border:1px solid var(--azul-borda);background:#fff;border-radius:7px;padding:.22rem .6rem;font-size:.78rem;cursor:pointer;color:var(--azul);font-family:inherit;font-weight:700}
+.sel-itens{max-height:230px;overflow:auto;padding:.3rem .2rem}
+.sel-itens label{display:flex;align-items:center;gap:.5rem;padding:.3rem .55rem;font-size:.84rem;border-radius:7px;cursor:pointer}
+.sel-itens label:hover{background:var(--azul-claro)}
+.sel-itens input{accent-color:var(--azul);flex:0 0 auto}
+.sel-itens span.km{margin-left:auto;color:var(--txt2);font-size:.78rem;white-space:nowrap}
 .dm-abas{display:flex;gap:.4rem;margin:.2rem 0 1rem;border-bottom:1px solid var(--borda)}
 .dm-abas button{border:0;background:none;padding:.55rem .95rem;font-size:.9rem;font-weight:700;color:var(--txt2);cursor:pointer;border-bottom:3px solid transparent;font-family:inherit}
 .dm-abas button.on{color:var(--azul);border-bottom-color:var(--amarelo)}
@@ -402,7 +410,9 @@ function base(map) {
   gateToque(map);
 }
 function novoMapa(id, opts = {}) {
-  const map = L.map(id, { center: [-4.2, -62.5], zoom: 5, zoomControl: true, preferCanvas: true, ...opts });
+  // tolerância no renderizador: sem ela é preciso acertar o pixel exato da linha para abrir a informação
+  const map = L.map(id, { center: [-4.2, -62.5], zoom: 5, zoomControl: true, preferCanvas: true,
+    renderer: L.canvas({ tolerance: 12 }), ...opts });
   base(map);
   mapas.push(map);
   return map;
@@ -729,6 +739,7 @@ async function ramais(chave) {
             <select class="sel" id="fMun" aria-label="Município"><option value="">Todos os municípios</option>${muns.map(m => `<option>${esc(m)}</option>`).join("")}</select>
             <select class="sel" id="fAc" aria-label="Rodovia de acesso"><option value="">Todas as rodovias de acesso</option>${acessos.map(m => `<option>${m}</option>`).join("")}</select>
           </div>
+          <div id="selRam"></div>
           <div id="mapaR" class="mapa"></div>
         </div>
         <div><div id="fichaR"></div><div id="listaR"></div></div>
@@ -739,18 +750,40 @@ async function ramais(chave) {
       <section class="painel"><h2>Municípios com mais ramais</h2><div class="graf"><canvas id="gMun"></canvas></div></section>
     </div>`;
   const map = novoMapa("mapaR");
-  const camada = L.geoJSON(null, { style: { color: "#FF8FC4", weight: 2 }, onEachFeature: (f, l) => l.on("click", () => { location.hash = `#ramais/${encodeURIComponent(f.properties.codigo + "_" + f.properties.numero)}`; }) }).addTo(map);
+  const camada = L.geoJSON(null, { style: { color: "#FF8FC4", weight: 2.6 },
+    onEachFeature: (f, l) => l.bindPopup(() => popRamal(f.properties)) }).addTo(map);
   const destaque = L.layerGroup().addTo(map);
-  const filtra = () => {
+  let ocultos = new Set();   // ramais desmarcados na lista do município
+  const painelSelecao = candidatos => {
+    const alvo = $("#selRam");
+    if (!$("#fMun").value) { alvo.innerHTML = ""; ocultos = new Set(); return; }
+    const visiveis = candidatos.filter(r => !ocultos.has(r.chave)).length;
+    alvo.innerHTML = `<div class="sel-lista">
+      <div class="sel-topo">${NF.format(visiveis)} de ${NF.format(candidatos.length)} no mapa
+        <button data-s="todos">Marcar todos</button><button data-s="nenhum">Desmarcar todos</button></div>
+      <div class="sel-itens">${candidatos.map(r => `<label><input type="checkbox" data-c="${esc(r.chave)}"${ocultos.has(r.chave) ? "" : " checked"}>
+        ${esc(tit(r.nome))}<span class="km">${num(r.extensao_km, 1)} km</span></label>`).join("")}</div></div>`;
+    alvo.querySelectorAll(".sel-itens input").forEach(i => i.addEventListener("change", () => {
+      if (i.checked) ocultos.delete(i.dataset.c); else ocultos.add(i.dataset.c);
+      filtra(true);
+    }));
+    alvo.querySelectorAll(".sel-topo button").forEach(b => b.addEventListener("click", () => {
+      ocultos = b.dataset.s === "nenhum" ? new Set(candidatos.map(r => r.chave)) : new Set();
+      filtra(true);
+    }));
+  };
+  const filtra = (mantemZoom) => {
     const q = $("#fRam").value.trim().toLowerCase(), m = $("#fMun").value, a = $("#fAc").value;
-    const sel = todos.filter(r => (!q || (r.nome || "").toLowerCase().includes(q)) && (!m || tit(r.municipio) === m) && (!a || r.rodovia_referencia === a));
+    const candidatos = todos.filter(r => (!q || (r.nome || "").toLowerCase().includes(q)) && (!m || tit(r.municipio) === m) && (!a || r.rodovia_referencia === a));
+    const sel = candidatos.filter(r => !ocultos.has(r.chave));
     camada.clearLayers(); camada.addData(sel.map(r => r.f));
-    if (sel.length && (q || m || a)) map.fitBounds(camada.getBounds(), { padding: [20, 20], maxZoom: 12 });
+    painelSelecao(candidatos);
+    if (sel.length && (q || m || a) && !mantemZoom) map.fitBounds(camada.getBounds(), { padding: [20, 20], maxZoom: 12 });
     $("#listaR").innerHTML = `<h3 style="margin-top:.2rem">${NF.format(sel.length)} ramais</h3>` + tabela([{ t: "Ramal" }, { t: "Município" }, { t: "Acesso" }, { t: "km", n: 1 }],
       sel.slice(0, 400).map(r => `<tr class="clic" onclick="location.hash='#ramais/${encodeURIComponent(r.chave)}'">${td(esc(tit(r.nome)))}${td(esc(tit(r.municipio)))}${td(esc(r.rodovia_referencia || "—"))}${td(num(r.extensao_km, 1), 1)}</tr>`), { rolo: 1, vazio: "Nenhum ramal com esses filtros." })
       + (sel.length > 400 ? `<div class="fonte">Mostrando 400 de ${sel.length}; refine a busca.</div>` : "");
   };
-  ["fRam", "fMun", "fAc"].forEach(id => $("#" + id).addEventListener("input", filtra));
+  ["fRam", "fMun", "fAc"].forEach(id => $("#" + id).addEventListener("input", () => { ocultos = new Set(); filtra(); }));
   filtra(); map.fitBounds(camada.getBounds(), { padding: [20, 20] });
   const r = chave && todos.find(x => x.chave === decodeURIComponent(chave));
   if (r) {
