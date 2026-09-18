@@ -93,6 +93,38 @@ main{padding:1.6rem;max-width:1480px;width:100%;margin:0 auto;flex:1}
 /* ─── mapa ─── */
 .mapa{height:clamp(340px,64vh,600px);border-radius:12px;overflow:hidden;background:#0F2233;box-shadow:inset 0 0 0 1px var(--borda);position:relative}
 .mapa.medio{height:clamp(320px,54vh,480px)}
+
+/* ───────── atlas e estudo eleitoral ───────── */
+.lado{display:grid;grid-template-columns:270px 1fr;gap:1rem;align-items:start}
+.lado.dir{grid-template-columns:1fr 340px}
+.lado .mapa{height:calc(100vh - 8.5rem);min-height:440px}
+.cartela{background:#fff;border-radius:16px;box-shadow:var(--sombra);padding:1.05rem 1.1rem;position:sticky;top:1rem;max-height:calc(100vh - 8.5rem);overflow:auto;overscroll-behavior:contain}
+.cartela h3{font-family:var(--cond);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--aux);margin:1.15rem 0 .4rem;font-weight:700}
+.cartela h3:first-child{margin-top:0}
+.cam{display:flex;align-items:center;gap:.55rem;padding:.36rem .42rem;border-radius:9px;font-size:.855rem;cursor:pointer;transition:background .15s}
+.cam:hover{background:var(--azul-claro)}
+.cam input{accent-color:var(--azul);width:15px;height:15px;cursor:pointer;flex:0 0 auto}
+.cam .tr{width:15px;height:3.5px;border-radius:2px;flex:0 0 auto}
+.cam .tr.pt{width:11px;height:11px;border-radius:50%}
+.cam .tr.ar{width:14px;height:11px;border-radius:3px;opacity:.75}
+.cam .qt{margin-left:auto;font-size:.72rem;color:var(--aux);font-variant-numeric:tabular-nums}
+.cam.carregando .qt::after{content:"…"}
+.busca-mapa{display:flex;gap:.4rem;margin-bottom:.2rem}
+.busca-mapa select{flex:1;min-width:0;border:1.5px solid var(--borda);border-radius:9px;padding:.44rem .5rem;font-family:inherit;font-size:.84rem;color:var(--txt);background:#fff}
+.busca-mapa select:focus-visible{outline:2px solid var(--azul);outline-offset:1px}
+.ficha-vazia{color:var(--aux);font-size:.85rem;line-height:1.5}
+.ficha-tit{font-family:var(--head);font-size:1rem;font-weight:800;color:var(--azul);line-height:1.25;margin-bottom:.15rem}
+.ficha-sub{font-size:.78rem;color:var(--aux);margin-bottom:.9rem}
+.ficha-bloco{border-top:1px solid var(--borda);padding-top:.75rem;margin-top:.85rem}
+.ficha-bloco b.rot{display:block;font-family:var(--cond);font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--aux);margin-bottom:.45rem}
+.voto{display:flex;align-items:baseline;gap:.5rem;padding:.26rem 0;font-size:.84rem;border-bottom:1px dotted var(--borda)}
+.voto:last-child{border-bottom:0}
+.voto .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voto .vt{font-variant-numeric:tabular-nums;font-weight:700;color:var(--azul)}
+.voto .pt{font-size:.72rem;color:var(--aux);font-variant-numeric:tabular-nums}
+.eleito{display:inline-flex;align-items:center;gap:.3rem;background:var(--azul-claro);color:var(--azul);border-radius:20px;padding:.08rem .45rem;font-size:.68rem;font-weight:700;font-family:var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.aviso-dado{font-size:.76rem;color:var(--aux);line-height:1.45;background:#FFF8E8;border-radius:9px;padding:.5rem .6rem}
+@media(max-width:860px){.lado,.lado.dir{grid-template-columns:1fr}.cartela{position:static;max-height:none}.lado .mapa{height:64vh}}
 @media(max-width:700px){.mapa,.mapa.medio{height:min(72vh,440px)}.leaflet-bar a,.med-btn button,.leaflet-control-layers-toggle{width:38px!important;height:38px!important;line-height:38px!important}}
 .leaflet-container.medindo{cursor:crosshair}
 .med-btn button{display:block;width:30px;height:30px;border:0;border-radius:2px;background:#fff;font-size:1.05rem;font-weight:700;color:var(--azul);cursor:pointer;line-height:1}
@@ -268,6 +300,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-atlas" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-urna" viewBox="0 0 24 24"><path d="M5 9h14v11H5z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/><path d="M10 14h4"/></symbol>
   <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-baixa" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
@@ -285,6 +319,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div><div class="marca-nome">Rodovias do Amazonas</div><div class="marca-sub">Plataforma de consulta</div></div>
   </div>
   <nav class="nav" id="nav">
+    <div class="nav-grupo">Atlas</div>
+    <a href="#atlas" data-r="atlas"><svg class="ic"><use href="#i-atlas"/></svg>Mapa do Amazonas</a>
     <div class="nav-grupo">Malha</div>
     <a href="#panorama" data-r="panorama"><svg class="ic"><use href="#i-painel"/></svg>Panorama e mapa</a>
     <a href="#estaduais" data-r="estaduais"><svg class="ic"><use href="#i-estadual"/></svg>Rodovias estaduais<span class="cont" id="c-est"></span></a>
@@ -298,6 +334,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <a href="#ranking" data-r="ranking"><svg class="ic"><use href="#i-ranking"/></svg>Prioridade de ramais<span class="cont" id="c-rank"></span></a>
     <div class="nav-grupo">Demanda dos municípios</div>
     <a href="#demanda" data-r="demanda"><svg class="ic"><use href="#i-demanda"/></svg>Pedidos por município<span class="cont" id="c-dem"></span></a>
+    <div class="nav-grupo">Estudo eleitoral</div>
+    <a href="#eleitoral" data-r="eleitoral"><svg class="ic"><use href="#i-urna"/></svg>Zonas e locais<span class="cont" id="c-ele"></span></a>
   </nav>
   <div class="sidebar-rodape">Dados de 2011 a 2026 reunidos de fontes públicas e levantamentos técnicos. Imagem de satélite: Esri World Imagery.</div>
 </aside>
@@ -397,23 +435,29 @@ function gateToque(map) { // no celular o mapa só captura o arraste depois de u
   veu.addEventListener("touchstart", libera, { passive: true });
 }
 
-function base(map) {
+function base(map, opts = {}) {
   const tile = (url, extra = {}) => L.tileLayer(url, { maxZoom: 19, detectRetina: true, ...extra });
   const sat = tile("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Esri World Imagery · Maxar, Earthstar Geographics" });
   const rot = tile("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { opacity: .9 });
   const claro = tile("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", attribution: "© OpenStreetMap · CARTO" });
   const satRot = L.layerGroup([sat, rot]).addTo(map);
-  L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro },
-    { "Divisas municipais": camadaMunicipios() }, { position: "topright" }).addTo(map);
+  if (!opts.semCamadas) {
+    L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro },
+      { "Divisas municipais": camadaMunicipios() }, { position: "topright" }).addTo(map);
+  } else {
+    L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro },
+      null, { position: "topright" }).addTo(map);
+  }
   L.control.scale({ imperial: false }).addTo(map);
   ferramentaMedida(map);
   gateToque(map);
 }
 function novoMapa(id, opts = {}) {
   // tolerância no renderizador: sem ela é preciso acertar o pixel exato da linha para abrir a informação
+  const { semCamadas, ...resto } = opts;
   const map = L.map(id, { center: [-4.2, -62.5], zoom: 5, zoomControl: true, preferCanvas: true,
-    renderer: L.canvas({ tolerance: 12 }), ...opts });
-  base(map);
+    renderer: L.canvas({ tolerance: 12 }), ...resto });
+  base(map, { semCamadas });
   mapas.push(map);
   return map;
 }
@@ -1319,6 +1363,301 @@ function fichaRural(nome, m, map, marcas) {
   }
 }
 
+
+/* ───────── atlas do Amazonas ───────── */
+const COR = { est: "#5FB0FF", fed: "#79E39A", ram: "#F5A623", mun: "#FFE9A8", ti: "#FF8A5B", uc: "#48D1A0",
+              rio: "#4FC3F7", porto: "#FFFFFF", trav: "#B2EBF2", ip4: "#FF4081", term: "#00E5FF",
+              zona: "#C08BE8", local: "#F5A623", sem: "#C9D2DC" };
+
+function camadaArquivo(url, opts = {}) { // carrega o geojson quando a camada entra no mapa, uma vez só
+  const g = L.featureGroup();   // featureGroup, e não layerGroup: o enquadramento precisa de getBounds
+  g.qtd = 0;
+  g.on("add", async () => {
+    if (g.getLayers().length) return;
+    const gj = await carrega(url);
+    L.geoJSON(gj, { style: opts.estilo, pointToLayer: opts.ponto, onEachFeature: opts.cada,
+                    filter: opts.filtro }).addTo(g);
+    g.qtd = (gj.features || []).length;
+    opts.aoCarregar?.(g, gj);
+  });
+  return g;
+}
+
+const rotulo = (l, txt) => l.bindTooltip(txt, { sticky: true, className: "mun-rot" });
+
+function camadasAtlas(aoContar) {
+  const conta = id => (g) => aoContar(id, g.qtd);
+  const linha = (cor, peso = 3) => ({ color: cor, weight: peso, opacity: .95, lineCap: "round" });
+  return [
+    { t: "Malha viária", itens: [
+      { id: "est", nome: "Rodovias estaduais", cor: COR.est, tipo: "tr", on: true,
+        faz: () => camadaArquivo("dados/geo/estaduais.geojson", { estilo: f => linha(COR.est, 3.4),
+          cada: (f, l) => rotulo(l, `<b>${esc(f.properties.codigo || "")}</b>`), aoCarregar: conta("est") }) },
+      { id: "fed", nome: "Rodovias federais", cor: COR.fed, tipo: "tr", on: true,
+        faz: () => camadaArquivo("dados/geo/federais.geojson", { estilo: () => linha(COR.fed, 3.4),
+          cada: (f, l) => rotulo(l, `<b>${esc(f.properties.codigo || f.properties.br || "")}</b>`), aoCarregar: conta("fed") }) },
+      { id: "ram", nome: "Ramais e vicinais", cor: COR.ram, tipo: "tr",
+        faz: () => camadaArquivo("dados/geo/ramais.geojson", { estilo: () => linha(COR.ram, 1.8),
+          cada: (f, l) => rotulo(l, esc(tit(f.properties.nome || ""))), aoCarregar: conta("ram") }) },
+    ] },
+    { t: "Água e navegação", itens: [
+      { id: "rio", nome: "Hidrovias e rios", cor: COR.rio, tipo: "tr",
+        faz: () => camadaArquivo("dados/geo/atlas/hidrovias.geojson", {
+          estilo: () => ({ color: COR.rio, weight: 2.6, opacity: .9, lineCap: "round" }),
+          cada: (f, l) => { const p = f.properties;
+            rotulo(l, `<b>${esc(p.rio || "")}</b> · ${esc(p.codigo || "")}`);
+            l.bindPopup(`<b>${esc(p.rio || "")}</b><br>${esc(p.codigo || "")}<br>${esc(p.trecho || "")}`); },
+          aoCarregar: (g, gj) => { aoContar("rio", g.qtd); listaRios(g, gj); } }) },
+      { id: "porto", nome: "Portos e instalações", cor: COR.porto, tipo: "pt",
+        faz: () => camadaArquivo("dados/geo/atlas/portos.geojson", {
+          ponto: (f, ll) => L.circleMarker(ll, { radius: 5, color: "#0B1B2B", weight: 1.3,
+            fillColor: COR.porto, fillOpacity: 1 }),
+          cada: (f, l) => l.bindPopup(`<b>${esc(tit(f.properties.nome || ""))}</b><br>${esc(f.properties.local || "")}`),
+          aoCarregar: conta("porto") }) },
+      { id: "ip4", nome: "IP4 do DNIT", cor: COR.ip4, tipo: "pt",
+        faz: () => camadaArquivo("dados/geo/atlas/ip4.geojson", {
+          ponto: (f, ll) => L.circleMarker(ll, { radius: 6, color: "#0B1B2B", weight: 1.4,
+            fillColor: COR.ip4, fillOpacity: f.properties.status === "Concluída" ? 1 : .35 }),
+          cada: (f, l) => { const p = f.properties;
+            l.bindPopup(`<b>IP4 ${esc(p.nome || "")}</b><br>${esc(p.municipio || "")}<br>${esc(p.status || "")}` +
+              `${p.contrato ? `<br>Contrato ${esc(p.contrato)}` : ""}`); },
+          aoCarregar: conta("ip4") }) },
+      { id: "term", nome: "Terminais flutuantes", cor: COR.term, tipo: "pt",
+        faz: () => camadaArquivo("dados/geo/atlas/terminais_flutuantes.geojson", {
+          ponto: (f, ll) => L.circleMarker(ll, { radius: 5, color: "#0B1B2B", weight: 1.3,
+            fillColor: COR.term, fillOpacity: 1 }),
+          cada: (f, l) => { const p = f.properties;
+            l.bindPopup(`<b>${esc(p.destino || "")}</b><br>${esc(p.municipio || "")}<br>${esc(p.coordenada || "")}`); },
+          aoCarregar: conta("term") }) },
+      { id: "trav", nome: "Travessias outorgadas", cor: COR.trav, tipo: "tr",
+        faz: () => camadaArquivo("dados/geo/atlas/travessias.geojson", {
+          estilo: () => ({ color: COR.trav, weight: 3, opacity: .95, dashArray: "5 4" }),
+          cada: (f, l) => l.bindPopup(`<b>${esc(f.properties.nome || "")}</b><br>Rio ${esc(f.properties.rio || "—")}`),
+          aoCarregar: conta("trav") }) },
+    ] },
+    { t: "Limites e áreas", itens: [
+      { id: "mun", nome: "Divisas municipais", cor: COR.mun, tipo: "tr", on: true,
+        faz: () => camadaArquivo("dados/geo/municipios.geojson", {
+          estilo: () => ({ color: COR.mun, weight: 1.1, opacity: .85, fill: false, dashArray: "6 4" }),
+          cada: (f, l) => rotulo(l, esc(f.properties.nome)), aoCarregar: conta("mun") }) },
+      { id: "uc", nome: "Unidades de conservação", cor: COR.uc, tipo: "ar",
+        faz: () => camadaArquivo("dados/geo/atlas/unidades_conservacao.geojson", {
+          estilo: () => ({ color: COR.uc, weight: 1, opacity: .9, fillColor: COR.uc, fillOpacity: .16 }),
+          cada: (f, l) => { const p = f.properties;
+            l.bindPopup(`<b>${esc(tit(p.nome || ""))}</b><br>${esc(p.grupo || "")} · ${esc(p.esfera || "")}` +
+              `<br>${NF.format(Math.round(p.ha || 0))} ha${p.ano ? ` · criada em ${esc(p.ano)}` : ""}`); },
+          aoCarregar: conta("uc") }) },
+      { id: "ti", nome: "Terras indígenas", cor: COR.ti, tipo: "ar",
+        faz: () => camadaArquivo("dados/geo/atlas/terras_indigenas.geojson", {
+          estilo: () => ({ color: COR.ti, weight: 1, opacity: .9, fillColor: COR.ti, fillOpacity: .18 }),
+          cada: (f, l) => { const p = f.properties;
+            l.bindPopup(`<b>${esc(p.nome)}</b><br>Etnia ${esc(p.etnia || "—")}<br>${esc(p.fase || "")}` +
+              `<br>${NF.format(Math.round(p.ha || 0))} ha`); }, aoCarregar: conta("ti") }) },
+    ] },
+    { t: "Eleitoral", itens: [
+      { id: "zona", nome: "Zonas eleitorais", cor: COR.zona, tipo: "ar",
+        faz: () => camadaArquivo("dados/geo/atlas/zonas_eleitorais.geojson", {
+          estilo: () => ({ color: COR.zona, weight: 1.2, opacity: .9, fillColor: COR.zona, fillOpacity: .1 }),
+          cada: (f, l) => { const p = f.properties;
+            l.bindPopup(`<b>${esc(p.nome)}</b><br>Zona ${esc(p.zona)}<br>${esc(p.municipios.join(", "))}`); },
+          aoCarregar: conta("zona") }) },
+      { id: "local", nome: "Locais de votação", cor: COR.local, tipo: "pt",
+        faz: () => camadaArquivo("dados/geo/atlas/locais_votacao.geojson", {
+          ponto: (f, ll) => L.circleMarker(ll, { radius: 4, color: "#fff", weight: 1.4,
+            fillColor: COR.zona, fillOpacity: 1 }),
+          cada: (f, l) => l.bindPopup(`<b>${esc(f.properties.nome)}</b><br>Zona ${esc(f.properties.zona)}`),
+          aoCarregar: conta("local") }) },
+    ] },
+  ];
+}
+
+function listaRios(grupo, gj) { // a camada traz os rios nomeados; o seletor isola um deles
+  const cx = $("#filtroRio");
+  if (!cx) return;
+  const rios = [...new Set(gj.features.map(f => f.properties.rio).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR"));
+  cx.hidden = false;
+  cx.querySelector("select").insertAdjacentHTML("beforeend",
+    rios.map(r => `<option>${esc(r)}</option>`).join(""));
+  cx.querySelector("select").onchange = e => {
+    const alvo = e.target.value;
+    grupo.eachLayer(c => c.eachLayer?.(l => {
+      const meu = !alvo || l.feature.properties.rio === alvo;
+      l.setStyle({ opacity: meu ? .95 : .12, weight: meu && alvo ? 4 : 2.6 });
+    }));
+  };
+}
+
+function painelCamadas(grupos) {
+  return grupos.map(g => `<h3>${g.t}</h3>` + g.itens.map(i =>
+    `<label class="cam" for="cam-${i.id}"><input type="checkbox" id="cam-${i.id}" data-cam="${i.id}"${i.on ? " checked" : ""}>
+      <i class="tr ${i.tipo}" style="background:${i.cor}"></i>${i.nome}<span class="qt" data-qt="${i.id}"></span></label>`).join("")).join("");
+}
+
+function ligaCamadas(map, grupos) {
+  const itens = grupos.flatMap(g => g.itens);
+  const feitas = {};
+  itens.forEach(i => { feitas[i.id] = i.faz(); });
+  document.querySelectorAll("[data-cam]").forEach(cx => {
+    const id = cx.dataset.cam;
+    const troca = () => { const c = feitas[id];
+      cx.checked ? map.addLayer(c) : map.removeLayer(c);
+      cx.closest(".cam").classList.toggle("carregando", cx.checked && !c.qtd); };
+    cx.addEventListener("change", troca);
+    if (cx.checked) troca();
+  });
+  return feitas;
+}
+
+async function atlas() {
+  const conta = (id, n) => {
+    const e = document.querySelector(`[data-qt="${id}"]`);
+    if (e) { e.textContent = NF.format(n); e.closest(".cam").classList.remove("carregando"); }
+  };
+  const grupos = camadasAtlas(conta);
+  $("#app").innerHTML = `
+  <section class="hero entra">
+    <svg class="hero-estrada" viewBox="0 0 420 260" aria-hidden="true"><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#F5A623" stroke-width="30" fill="none"/><path d="M-10 250 C120 200 160 120 250 90 S390 20 440 -10" stroke="#fff" stroke-width="3" stroke-dasharray="18 16" fill="none"/></svg>
+    <h1>Atlas do Amazonas</h1>
+    <p>Um mapa só, com a malha viária, os limites municipais, as terras indígenas e a divisão eleitoral. Ligue as camadas que interessam, meça distância pela régua no canto do mapa e clique em qualquer feição para ver a ficha.</p>
+  </section>
+  <div class="lado entra">
+    <aside class="cartela">
+      <h3>Ir para o município</h3>
+      <div class="busca-mapa"><select id="vaiMun"><option value="">selecione…</option></select></div>
+      <div class="busca-mapa" id="filtroRio" hidden><select aria-label="Rio"><option value="">todos os rios</option></select></div>
+      ${painelCamadas(grupos)}
+      <h3>Como medir</h3>
+      <p class="ficha-vazia">A régua fica no canto superior esquerdo do mapa. Clique ponto a ponto: cada trecho mostra a parcial e a caixa embaixo soma o total.</p>
+    </aside>
+    <div id="mapaAtlas" class="mapa"></div>
+  </div>`;
+  const map = novoMapa("mapaAtlas", { semCamadas: true });
+  ligaCamadas(map, grupos);
+
+  const sel = $("#vaiMun");
+  const mun = await carrega("dados/geo/municipios.geojson");
+  map.fitBounds(L.geoJSON(mun).getBounds(), { padding: [12, 12] });
+  const nomes = mun.features.map(f => f.properties.nome).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  sel.insertAdjacentHTML("beforeend", nomes.map(n => `<option>${esc(n)}</option>`).join(""));
+  sel.addEventListener("change", () => {
+    const f = mun.features.find(x => x.properties.nome === sel.value);
+    if (f) map.fitBounds(L.geoJSON(f).getBounds(), { padding: [24, 24] });
+  });
+}
+
+/* ───────── estudo eleitoral ───────── */
+const CARGOS_2022 = ["Presidente", "Governador", "Senador", "Deputado Federal", "Deputado Estadual"];
+let LOCAIS_2022 = null;   // detalhe por local, carregado no primeiro clique
+
+const linhaVoto = (nome, votos, partido, marca) =>
+  `<div class="voto"><span class="nm">${esc(tit(nome))}${partido ? ` <span class="pt">${esc(partido)}</span>` : ""}</span>` +
+  `${marca ? '<span class="eleito">eleito</span>' : ""}<span class="vt">${NF.format(votos)}</span></div>`;
+
+const listaVotos = (lista, n = 6) => (lista || []).slice(0, n)
+  .map(c => linhaVoto(c.nome, c.votos, c.partido, c.eleito)).join("");
+
+function blocosPorCargo(porCargo, n) {
+  return CARGOS_2022.filter(c => porCargo?.[c]?.length)
+    .map(c => `<div class="ficha-bloco"><b class="rot">${esc(c)}</b>${listaVotos(porCargo[c], n)}</div>`)
+    .join("") || `<p class="aviso-dado">Sem votação registrada aqui.</p>`;
+}
+
+function fichaEstado(E) {
+  const e22 = E["2022"];
+  const capital = ((E["2024"].MANAUS || {}).prefeito || {}).eleitos || [];
+  return `<div class="ficha-tit">Retrato do estado</div>
+    <div class="ficha-sub">Clique num local de votação ou numa zona para trocar esta ficha</div>
+    <div class="ficha-bloco"><b class="rot">2022 · eleitos pelo Amazonas</b>
+      ${CARGOS_2022.filter(c => (e22.eleitos[c] || []).length).map(c =>
+        `<div class="voto"><span class="nm"><b>${esc(c)}</b></span></div>` +
+        (e22.eleitos[c] || []).slice(0, 8).map(x => linhaVoto(x.nome, x.votos, x.partido, false)).join("")).join("")}
+    </div>
+    ${capital.length ? `<div class="ficha-bloco"><b class="rot">2024 · prefeito da capital</b>
+      ${linhaVoto(capital[0].nome, capital[0].votos, capital[0].partido, false)}</div>` : ""}
+    <div class="ficha-bloco"><b class="rot">Como ler o mapa</b>
+      <p class="ficha-vazia">Ponto âmbar: local com votação registrada em 2022. Ponto cinza: local mapeado em campo que ainda não casou com um nome da urna. Área roxa: zona eleitoral. Os votos por local e por zona são do primeiro turno.</p></div>`;
+}
+
+async function fichaLocal(E, p) {
+  const chave = p.local ? `${p.zona}-${String(Number(p.local))}` : null;
+  LOCAIS_2022 = LOCAIS_2022 || await carrega("dados/eleicoes_locais.json");
+  const doLocal = chave ? LOCAIS_2022.votos[chave] : null;
+  const mun = E["2024"][p.municipio] || {};
+  const pref = (mun.prefeito || {}).eleitos || [];
+  const ver = (mun.vereador || {}).eleitos || [];
+  return `<div class="ficha-tit">${esc(tit(p.nome))}</div>
+    <div class="ficha-sub">Zona ${esc(p.zona)} · ${esc(tit(p.municipio))}${p.nome_urna ? ` · urna: ${esc(tit(p.nome_urna))}` : ""}</div>
+    <div class="ficha-bloco"><b class="rot">2022 · votos neste local, 1º turno</b></div>
+    ${doLocal ? blocosPorCargo(doLocal, 5) : `<p class="aviso-dado">Este ponto ainda não casou com um local da votação registrada: o nome levantado em campo difere do nome na urna.</p>`}
+    <div class="ficha-bloco"><b class="rot">2024 · prefeito eleito no município</b>
+      ${pref.length ? pref.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("")
+        : `<p class="aviso-dado">Resultado não publicado na divulgação para este município.</p>`}</div>
+    <div class="ficha-bloco"><b class="rot">2024 · vereadores eleitos (${ver.length})</b>
+      ${ver.length ? ver.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("")
+        : `<p class="aviso-dado">A divulgação do TSE não marca os eleitos de vereador neste município. Os votos de cada candidato estão na planilha do estudo.</p>`}</div>`;
+}
+
+function fichaZona(E, p) {
+  const daZona = E["2022"].por_zona[p.zona];
+  const prefeitos = p.municipios.map(m => {
+    const e = ((E["2024"][m] || {}).prefeito || {}).eleitos || [];
+    return e.length ? linhaVoto(`${tit(m)} · ${tit(e[0].nome)}`, e[0].votos, e[0].partido, false) : "";
+  }).join("");
+  return `<div class="ficha-tit">Zona ${esc(p.zona)}</div>
+    <div class="ficha-sub">${esc(p.nome)} · ${esc(p.municipios.map(tit).join(", "))}</div>
+    <div class="ficha-bloco"><b class="rot">2022 · votos na zona, 1º turno</b></div>
+    ${blocosPorCargo(daZona, 6)}
+    <div class="ficha-bloco"><b class="rot">2024 · prefeitos eleitos</b>${prefeitos || `<p class="aviso-dado">Sem resultado publicado.</p>`}</div>
+    <div class="ficha-bloco"><b class="rot">Traçado</b><p class="ficha-vazia">${esc(p.origem)}.</p></div>`;
+}
+
+async function eleitoral() {
+  const E = await carrega("dados/eleicoes.json");
+  const e22 = E["2022"];
+  const nVer = Object.values(E["2024"]).reduce((a, m) => a + ((m.vereador || {}).eleitos || []).length, 0);
+  const nPref = Object.values(E["2024"]).filter(m => ((m.prefeito || {}).eleitos || []).length).length;
+  $("#app").innerHTML = `
+  <section class="hero entra">
+    <h1>Estudo eleitoral</h1>
+    <p>As 60 zonas eleitorais do Amazonas, os locais de votação e o resultado de 2022 e 2024. Clique num local ou numa zona para ver quem venceu ali, cargo a cargo.</p>
+  </section>
+  <div class="nums entra">
+    <div class="num"><b>60</b><span>zonas eleitorais</span></div>
+    <div class="num"><b>1.432</b><span>locais com votação registrada</span></div>
+    <div class="num"><b>611</b><span>locais mapeados em campo</span></div>
+    <div class="num"><b>${NF.format(nPref)}</b><span>prefeitos eleitos em 2024</span></div>
+    <div class="num"><b>${NF.format(nVer)}</b><span>vereadores eleitos em 2024</span></div>
+    <div class="num"><b>${NF.format((e22.eleitos["Deputado Estadual"] || []).length)}</b><span>deputados estaduais eleitos em 2022</span></div>
+  </div>
+  <div class="lado dir entra">
+    <div id="mapaEle" class="mapa"></div>
+    <aside class="cartela" id="fichaEle">${fichaEstado(E)}</aside>
+  </div>
+  <section class="painel entra">
+    <h2>O que esta base cobre</h2>
+    <p class="nota">De 2022: presidente, governador, senador, deputado federal e deputado estadual por zona e por município, do repositório de dados abertos do TSE. Por local de votação estão os quatro cargos da eleição estadual — o arquivo por seção baixado cobre essa eleição; presidente por local depende do pacote da eleição federal. De 2024: prefeito e vereador dos 62 municípios, da divulgação de resultados, com Manaus pelo segundo turno. Os votos por zona e por local são do primeiro turno, que permite comparar todos os cargos na mesma base. O detalhamento completo está na planilha <b>Estudo_Eleitoral_AM.xlsx</b>.</p>
+  </section>`;
+  const map = novoMapa("mapaEle", { semCamadas: true, center: [-3.6, -61], zoom: 6 });
+  const ficha = $("#fichaEle");
+  const mostra = html => { ficha.innerHTML = html; ficha.scrollTop = 0; };
+  const zonas = camadaArquivo("dados/geo/atlas/zonas_eleitorais.geojson", {
+    estilo: () => ({ color: COR.zona, weight: 1.2, opacity: .85, fillColor: COR.zona, fillOpacity: .09 }),
+    cada: (f, l) => { rotulo(l, `Zona ${esc(f.properties.zona)}`);
+      l.on("click", () => mostra(fichaZona(E, f.properties))); },
+  });
+  const locais = camadaArquivo("dados/geo/atlas/locais_votacao.geojson", {
+    ponto: (f, ll) => L.circleMarker(ll, { radius: 5, color: "#0B1B2B", weight: 1.2,
+      fillColor: f.properties.local ? COR.local : COR.sem, fillOpacity: 1 }),
+    cada: (f, l) => { rotulo(l, esc(tit(f.properties.nome)));
+      l.on("click", async () => mostra(await fichaLocal(E, f.properties))); },
+    aoCarregar: g => map.fitBounds(g.getBounds(), { padding: [20, 20] }),
+  });
+  map.addLayer(zonas); map.addLayer(locais);
+  L.control.layers(null, { "Zonas eleitorais": zonas, "Locais de votação": locais },
+    { position: "topright", collapsed: false }).addTo(map);
+}
+
 async function rota() {
   const [r, arg] = (location.hash.slice(1) || "panorama").split("/");
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("ativo", a.dataset.r === r));
@@ -1338,6 +1677,8 @@ async function rota() {
     else if (r === "rural") await moduloRural(arg);
     else if (r === "ranking") await moduloRanking(arg);
     else if (r === "demanda") await moduloDemanda(arg);
+    else if (r === "atlas") await atlas();
+    else if (r === "eleitoral") await eleitoral();
     else { await panorama(); }
     document.body.dataset.r = r;
     if (r === "aerodromos" && arg) document.getElementById("mapaA").closest(".painel").scrollIntoView({ behavior: "smooth", block: "start" });
