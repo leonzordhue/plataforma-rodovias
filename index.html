@@ -1547,116 +1547,110 @@ async function atlas() {
 }
 
 /* ───────── estudo eleitoral ───────── */
-const CARGOS_2022 = ["Presidente", "Governador", "Senador", "Deputado Federal", "Deputado Estadual"];
-let LOCAIS_2022 = null;   // detalhe por local, carregado no primeiro clique
+const ORDEM_CARGO = ["Presidente", "Governador", "Senador", "Deputado Federal", "Deputado Estadual",
+                     "Prefeito", "Vereador"];
+let LOCAIS_ANO = null;   // detalhe por local, carregado no primeiro clique
+
+const ordenaCargos = cargos => ORDEM_CARGO.filter(c => cargos.includes(c))
+  .concat(cargos.filter(c => !ORDEM_CARGO.includes(c)));
+const semAcento = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
 const linhaVoto = (nome, votos, partido, marca) =>
   `<div class="voto"><span class="nm">${esc(tit(nome))}${partido ? ` <span class="pt">${esc(partido)}</span>` : ""}</span>` +
   `${marca ? '<span class="eleito">eleito</span>' : ""}<span class="vt">${NF.format(votos)}</span></div>`;
 
-const listaVotos = (lista, n = 6) => (lista || []).slice(0, n)
-  .map(c => linhaVoto(c.nome, c.votos, c.partido, c.eleito)).join("");
+function blocosCargo(porCargo, n, prefixo = "") {
+  const cargos = ordenaCargos(Object.keys(porCargo || {})).filter(c => porCargo[c]?.length);
+  if (!cargos.length) return "";
+  return cargos.map(c => `<div class="ficha-bloco"><b class="rot">${esc(prefixo + c)}</b>` +
+    porCargo[c].slice(0, n).map(x => linhaVoto(x.nome, x.votos, x.partido, x.eleito)).join("") +
+    `</div>`).join("");
+}
 
-function blocosPorCargo(porCargo, n) {
-  return CARGOS_2022.filter(c => porCargo?.[c]?.length)
-    .map(c => `<div class="ficha-bloco"><b class="rot">${esc(c)}</b>${listaVotos(porCargo[c], n)}</div>`)
-    .join("") || `<p class="aviso-dado">Sem votação registrada aqui.</p>`;
+function achaChave(obj, nome) {
+  const alvo = semAcento(nome);
+  return Object.keys(obj || {}).find(k => semAcento(k) === alvo);
 }
 
 function fichaEstado(E) {
-  const e22 = E["2022"];
-  const capital = ((E["2024"].MANAUS || {}).prefeito || {}).eleitos || [];
+  const blocos = E.anos.map(ano => {
+    const d = E[ano];
+    const cargos = ordenaCargos(d.cargos).filter(c => (d.eleitos[c] || []).length);
+    const resumo = cargos.map(c => {
+      const lista = d.eleitos[c] || [];
+      if (lista.length > 12) return `<div class="voto"><span class="nm">${esc(c)}</span><span class="vt">${NF.format(lista.length)} eleitos</span></div>`;
+      return `<div class="voto"><span class="nm"><b>${esc(c)}</b></span></div>` +
+        lista.map(x => linhaVoto(x.nome, x.votos, x.partido, false)).join("");
+    }).join("");
+    return `<div class="ficha-bloco"><b class="rot">${ano} · eleitos pelo Amazonas</b>${resumo}</div>`;
+  }).join("");
   return `<div class="ficha-tit">Retrato do estado</div>
-    <div class="ficha-sub">Clique num local de votação ou numa zona para trocar esta ficha</div>
-    <div class="ficha-bloco"><b class="rot">2022 · eleitos pelo Amazonas</b>
-      ${CARGOS_2022.filter(c => (e22.eleitos[c] || []).length).map(c =>
-        `<div class="voto"><span class="nm"><b>${esc(c)}</b></span></div>` +
-        (e22.eleitos[c] || []).slice(0, 8).map(x => linhaVoto(x.nome, x.votos, x.partido, false)).join("")).join("")}
-    </div>
-    ${capital.length ? `<div class="ficha-bloco"><b class="rot">2024 · prefeito da capital</b>
-      ${linhaVoto(capital[0].nome, capital[0].votos, capital[0].partido, false)}</div>` : ""}
+    <div class="ficha-sub">Clique num município, numa zona ou num local para trocar esta ficha</div>
+    ${blocos}
     <div class="ficha-bloco"><b class="rot">Como ler o mapa</b>
-      <p class="ficha-vazia">Clique no contorno amarelo para o resultado do município, na área roxa para a zona e no ponto para o local. Ponto âmbar: local com votação registrada em 2022; ponto cinza: local mapeado em campo que ainda não casou com um nome da urna. Os votos por local, zona e município são do primeiro turno.</p></div>`;
-}
-
-async function fichaLocal(E, p) {
-  const chave = p.local ? `${p.zona}-${String(Number(p.local))}` : null;
-  LOCAIS_2022 = LOCAIS_2022 || await carrega("dados/eleicoes_locais.json");
-  const doLocal = chave ? LOCAIS_2022.votos[chave] : null;
-  const mun = E["2024"][p.municipio] || {};
-  const pref = (mun.prefeito || {}).eleitos || [];
-  const ver = (mun.vereador || {}).eleitos || [];
-  return `<div class="ficha-tit">${esc(tit(p.nome))}</div>
-    <div class="ficha-sub">Zona ${esc(p.zona)} · ${esc(tit(p.municipio))}${p.nome_urna ? ` · urna: ${esc(tit(p.nome_urna))}` : ""}</div>
-    <div class="ficha-bloco"><b class="rot">2022 · votos neste local, 1º turno</b></div>
-    ${doLocal ? blocosPorCargo(doLocal, 5) : `<p class="aviso-dado">Este ponto ainda não casou com um local da votação registrada: o nome levantado em campo difere do nome na urna.</p>`}
-    <div class="ficha-bloco"><b class="rot">2024 · prefeito eleito no município</b>
-      ${pref.length ? pref.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("")
-        : `<p class="aviso-dado">Resultado não publicado na divulgação para este município.</p>`}</div>
-    <div class="ficha-bloco"><b class="rot">2024 · vereadores eleitos (${ver.length})</b>
-      ${ver.length ? ver.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("")
-        : `<p class="aviso-dado">A divulgação do TSE não marca os eleitos de vereador neste município. Os votos de cada candidato estão na planilha do estudo.</p>`}</div>`;
-}
-
-const semAcento = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-
-function achaMunicipio(E, nome) {
-  const alvo = semAcento(nome);
-  const em2024 = Object.keys(E["2024"]).find(m => semAcento(m) === alvo);
-  const em2022 = Object.keys(E["2022"].por_municipio).find(m => semAcento(m) === alvo);
-  return { nome, d24: E["2024"][em2024] || {}, d22: E["2022"].por_municipio[em2022] || null };
+      <p class="ficha-vazia">Contorno amarelo: município. Área roxa: zona eleitoral. Ponto âmbar: local com votação registrada; ponto cinza: local mapeado em campo que ainda não casou com um nome da urna. Os votos por município, zona e local são do primeiro turno.</p></div>`;
 }
 
 function fichaMunicipio(E, nome) {
-  const { d24, d22 } = achaMunicipio(E, nome);
-  const pref = (d24.prefeito || {}).eleitos || [];
-  const ver = (d24.vereador || {}).eleitos || [];
-  const disputa = (d24.prefeito || {}).primeiros || [];
+  const blocos = E.anos.map(ano => {
+    const d = E[ano];
+    const k = achaChave(d.por_municipio, nome);
+    const porCargo = k ? d.por_municipio[k] : null;
+    const vereadores = (d.eleitos["Vereador"] || []).filter(c => semAcento(c.municipio) === semAcento(nome));
+    return (porCargo ? blocosCargo(porCargo, 6, `${ano} · `) : "") +
+      (vereadores.length ? `<div class="ficha-bloco"><b class="rot">${ano} · vereadores eleitos (${vereadores.length})</b>` +
+        vereadores.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("") + `</div>` : "");
+  }).join("");
   return `<div class="ficha-tit">${esc(tit(nome))}</div>
-    <div class="ficha-sub">Resultado do município${d24.zonas?.length ? ` · zona ${d24.zonas.join(", ")}` : ""}</div>
-    <div class="ficha-bloco"><b class="rot">2024 · disputa pela prefeitura</b>
-      ${disputa.length ? disputa.slice(0, 6).map(c =>
-        linhaVoto(c.nome, c.votos, c.partido, c.eleito)).join("")
-        : `<p class="aviso-dado">Resultado não publicado na divulgação para este município.</p>`}
-      ${pref.length && !disputa.some(c => c.eleito) ? linhaVoto(pref[0].nome, pref[0].votos, pref[0].partido, true) : ""}</div>
-    <div class="ficha-bloco"><b class="rot">2024 · vereadores eleitos (${ver.length})</b>
-      ${ver.length ? ver.map(c => linhaVoto(c.nome, c.votos, c.partido, false)).join("")
-        : `<p class="aviso-dado">A divulgação do TSE não marca os eleitos de vereador aqui. Os votos por candidato estão na planilha do estudo.</p>`}</div>
-    <div class="ficha-bloco"><b class="rot">2022 · votos no município, 1º turno</b></div>
-    ${d22 ? blocosPorCargo(d22, 6) : `<p class="aviso-dado">Sem votação de 2022 para este município na base.</p>`}`;
+    <div class="ficha-sub">Resultado do município</div>
+    ${blocos || `<p class="aviso-dado">Sem resultado para este município na base.</p>`}`;
 }
 
 function fichaZona(E, p) {
-  const daZona = E["2022"].por_zona[p.zona];
-  const prefeitos = p.municipios.map(m => {
-    const e = ((E["2024"][m] || {}).prefeito || {}).eleitos || [];
-    return e.length ? linhaVoto(`${tit(m)} · ${tit(e[0].nome)}`, e[0].votos, e[0].partido, false) : "";
+  const blocos = E.anos.map(ano => {
+    const porCargo = E[ano].por_zona[p.zona];
+    if (!porCargo) return `<div class="ficha-bloco"><b class="rot">${ano}</b>` +
+      `<p class="aviso-dado">${ano === "2024" ? "A divulgação de resultados não publica por zona; o resultado municipal está na ficha do município." : "Sem votação registrada nesta zona."}</p></div>`;
+    return blocosCargo(porCargo, 6, `${ano} · `);
   }).join("");
   return `<div class="ficha-tit">Zona ${esc(p.zona)}</div>
     <div class="ficha-sub">${esc(p.nome)} · ${esc(p.municipios.map(tit).join(", "))}</div>
-    <div class="ficha-bloco"><b class="rot">2022 · votos na zona, 1º turno</b></div>
-    ${blocosPorCargo(daZona, 6)}
-    <div class="ficha-bloco"><b class="rot">2024 · prefeitos eleitos</b>${prefeitos || `<p class="aviso-dado">Sem resultado publicado.</p>`}</div>
+    ${blocos}
     <div class="ficha-bloco"><b class="rot">Traçado</b><p class="ficha-vazia">${esc(p.origem)}.</p></div>`;
+}
+
+async function fichaLocal(E, p) {
+  LOCAIS_ANO = LOCAIS_ANO || await carrega("dados/eleicoes_locais.json");
+  const ch = p.local ? `${p.zona}-${String(Number(p.local))}` : null;
+  const blocos = E.anos.map(ano => {
+    const doAno = LOCAIS_ANO[ano];
+    const votos = ch && doAno ? doAno.votos[ch] : null;
+    if (!votos) return doAno ? "" : `<div class="ficha-bloco"><b class="rot">${ano}</b>` +
+      `<p class="aviso-dado">Sem votação por local neste ano: falta o pacote por seção.</p></div>`;
+    return blocosCargo(votos, 5, `${ano} · `);
+  }).join("");
+  return `<div class="ficha-tit">${esc(tit(p.nome))}</div>
+    <div class="ficha-sub">Zona ${esc(p.zona)} · ${esc(tit(p.municipio))}${p.nome_urna ? ` · urna: ${esc(tit(p.nome_urna))}` : ""}</div>
+    ${ch ? blocos : `<p class="aviso-dado">Este ponto ainda não casou com um local da votação registrada: o nome levantado em campo difere do nome na urna.</p>`}
+    <div class="ficha-bloco"><b class="rot">Município</b>
+      <p class="ficha-vazia">O resultado completo do município está na ficha dele: clique no contorno amarelo.</p></div>`;
 }
 
 async function eleitoral() {
   const E = await carrega("dados/eleicoes.json");
-  const e22 = E["2022"];
-  const nVer = Object.values(E["2024"]).reduce((a, m) => a + ((m.vereador || {}).eleitos || []).length, 0);
-  const nPref = Object.values(E["2024"]).filter(m => ((m.prefeito || {}).eleitos || []).length).length;
+  const conta = (ano, cargo) => ((E[ano] || {}).eleitos?.[cargo] || []).length;
   $("#app").innerHTML = `
   <section class="hero entra">
     <h1>Estudo eleitoral</h1>
-    <p>As 60 zonas eleitorais do Amazonas, os 62 municípios e os locais de votação, com o resultado de 2022 e 2024. Clique num município, numa zona ou num local para ver quem venceu ali, cargo a cargo.</p>
+    <p>As 60 zonas eleitorais do Amazonas, os 62 municípios e os locais de votação, com o resultado de ${E.anos.slice().reverse().join(" e ")}. Clique num município, numa zona ou num local para ver quem venceu ali, cargo a cargo.</p>
   </section>
   <div class="nums entra">
     <div class="num"><b>60</b><span>zonas eleitorais</span></div>
     <div class="num"><b>1.432</b><span>locais com votação registrada</span></div>
     <div class="num"><b>611</b><span>locais mapeados em campo</span></div>
-    <div class="num"><b>${NF.format(nPref)}</b><span>prefeitos eleitos em 2024</span></div>
-    <div class="num"><b>${NF.format(nVer)}</b><span>vereadores eleitos em 2024</span></div>
-    <div class="num"><b>${NF.format((e22.eleitos["Deputado Estadual"] || []).length)}</b><span>deputados estaduais eleitos em 2022</span></div>
+    <div class="num"><b>${NF.format(conta("2024", "Prefeito"))}</b><span>prefeitos eleitos em 2024</span></div>
+    <div class="num"><b>${NF.format(conta("2024", "Vereador"))}</b><span>vereadores eleitos em 2024</span></div>
+    <div class="num"><b>${NF.format(conta("2022", "Deputado Estadual"))}</b><span>deputados estaduais eleitos em 2022</span></div>
   </div>
   <div class="lado dir entra">
     <div id="mapaEle" class="mapa"></div>
@@ -1664,11 +1658,17 @@ async function eleitoral() {
   </div>
   <section class="painel entra">
     <h2>O que esta base cobre</h2>
-    <p class="nota">De 2022: presidente, governador, senador, deputado federal e deputado estadual por zona e por município, do repositório de dados abertos do TSE. Por local de votação estão os quatro cargos da eleição estadual — o arquivo por seção baixado cobre essa eleição; presidente por local depende do pacote da eleição federal. De 2024: prefeito e vereador dos 62 municípios, da divulgação de resultados, com Manaus pelo segundo turno. Os votos por zona e por local são do primeiro turno, que permite comparar todos os cargos na mesma base. O detalhamento completo está na planilha <b>Estudo_Eleitoral_AM.xlsx</b>.</p>
+    <p class="nota">De 2022: presidente, governador, senador, deputado federal e deputado estadual, por município, por zona e por local de votação, do repositório de dados abertos do TSE. De 2024: prefeito e vereador dos 62 municípios, da divulgação de resultados, com Manaus pelo segundo turno — por zona e por local depende do pacote do repositório daquele ano. Os votos são do primeiro turno, que permite comparar todos os cargos na mesma base. O detalhamento está na planilha <b>Estudo_Eleitoral_AM.xlsx</b>.</p>
   </section>`;
   const map = novoMapa("mapaEle", { semCamadas: true, center: [-3.6, -61], zoom: 6 });
   const ficha = $("#fichaEle");
   const mostra = html => { ficha.innerHTML = html; ficha.scrollTop = 0; };
+  const municipios = camadaArquivo("dados/geo/municipios.geojson", {
+    estilo: () => ({ color: "#FFE9A8", weight: 1.1, opacity: .8, fillColor: "#FFE9A8",
+                     fillOpacity: .06, dashArray: "6 4" }),
+    cada: (f, l) => { rotulo(l, esc(f.properties.nome));
+      l.on("click", e => { L.DomEvent.stop(e); mostra(fichaMunicipio(E, f.properties.nome)); }); },
+  });
   const zonas = camadaArquivo("dados/geo/atlas/zonas_eleitorais.geojson", {
     estilo: () => ({ color: COR.zona, weight: 1.2, opacity: .85, fillColor: COR.zona, fillOpacity: .09 }),
     cada: (f, l) => { rotulo(l, `Zona ${esc(f.properties.zona)}`);
@@ -1680,12 +1680,6 @@ async function eleitoral() {
     cada: (f, l) => { rotulo(l, esc(tit(f.properties.nome)));
       l.on("click", async () => mostra(await fichaLocal(E, f.properties))); },
     aoCarregar: g => map.fitBounds(g.getBounds(), { padding: [20, 20] }),
-  });
-  const municipios = camadaArquivo("dados/geo/municipios.geojson", {
-    estilo: () => ({ color: "#FFE9A8", weight: 1.1, opacity: .8, fillColor: "#FFE9A8",
-                     fillOpacity: .06, dashArray: "6 4" }),
-    cada: (f, l) => { rotulo(l, esc(f.properties.nome));
-      l.on("click", e => { L.DomEvent.stop(e); mostra(fichaMunicipio(E, f.properties.nome)); }); },
   });
   map.addLayer(municipios); map.addLayer(zonas); map.addLayer(locais);
   L.control.layers(null, { "Municípios": municipios, "Zonas eleitorais": zonas,
