@@ -439,7 +439,7 @@ function base(map, opts = {}) {
   const tile = (url, extra = {}) => L.tileLayer(url, { maxZoom: 19, detectRetina: true, ...extra });
   const sat = tile("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Esri World Imagery · Maxar, Earthstar Geographics" });
   const rot = tile("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { opacity: .9 });
-  const claro = tile("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", attribution: "© OpenStreetMap · CARTO" });
+  const claro = tile("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {maxNativeZoom:16,  attribution: "© Esri" });
   const satRot = L.layerGroup([sat, rot]).addTo(map);
   if (!opts.semCamadas) {
     L.control.layers({ "Satélite": satRot, "Satélite sem rótulos": sat, "Mapa claro": claro },
